@@ -225,6 +225,13 @@ GLint g_bbox_max_uniform;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
+#include "gameLogic\inputs\input_debug.h"
+#include "gameLogic\inputs\input_system.h"
+#include "gameLogic\inputs\platform_input.h"
+     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
+////////////////////////////////////////////////////////////////////////////INPUT DEBUG
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -264,7 +271,23 @@ int main(int argc, char* argv[])
 
     // Definimos a função de callback que será chamada sempre que o usuário
     // pressionar alguma tecla do teclado ...
-    glfwSetKeyCallback(window, KeyCallback);
+
+
+
+
+    //glfwSetKeyCallback(window, KeyCallback);
+
+
+    /////////////////////////////////////////////////////////////////DEBUG INPUTS
+    InputSystem inputSystem;
+    InputDebugRenderer debugRenderer;
+    ///////////////////////////////////////////////////////////////////////DEBUG INPUTS
+    ///////////////////////////////////////////////////////////////////////////DEBUG INPUTS
+    inputSystem.init(window);      // Configura os mapeamentos de teclas
+    //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
+
+
+    
     // ... ou clicar os botões do mouse ...
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
     // ... ou movimentar o cursor do mouse em cima da janela ...
@@ -274,6 +297,8 @@ int main(int argc, char* argv[])
 
     // Indicamos que as chamadas OpenGL deverão renderizar nesta janela
     glfwMakeContextCurrent(window);
+
+    glfwSwapInterval(1); /////////////////////////////////////////////////////V-SYNC
 
     // Carregamento de todas funções definidas por OpenGL 3.3, utilizando a
     // biblioteca GLAD.
@@ -332,9 +357,20 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        // Verificamos com o sistema operacional se houve alguma interação do
+        // usuário (teclado, mouse, ...). Caso positivo, as funções de callback
+        // definidas anteriormente usando glfwSet*Callback() serão chamadas
+        // pela biblioteca GLFW.
+        glfwPollEvents();
+        //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
+        inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
+    
+        //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
+
         // Aqui executamos as operações de renderização
 
         // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
@@ -410,7 +446,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        #define SPHERE 0
+        /*#define SPHERE 0
         #define BUNNY  1
         #define PLANE  2
 
@@ -434,8 +470,13 @@ int main(int argc, char* argv[])
         model = Matrix_Translate(0.0f,-1.1f,0.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
-        DrawVirtualObject("the_plane");
+        DrawVirtualObject("the_plane");*//////////////////////////////////////////////////////////////////////////////////
 
+        std::string debug = debugRenderer.buildString(inputSystem);
+        TextRendering_PrintString(window, debug, 0.02f, 0.9f);
+        printf("%s\n", debug.c_str());
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////DEBUG INPUT
+        
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
         TextRendering_ShowEulerAngles(window);
@@ -455,11 +496,7 @@ int main(int argc, char* argv[])
         // Veja o link: https://en.wikipedia.org/w/index.php?title=Multiple_buffering&oldid=793452829#Double_buffering_in_computer_graphics
         glfwSwapBuffers(window);
 
-        // Verificamos com o sistema operacional se houve alguma interação do
-        // usuário (teclado, mouse, ...). Caso positivo, as funções de callback
-        // definidas anteriormente usando glfwSet*Callback() serão chamadas
-        // pela biblioteca GLFW.
-        glfwPollEvents();
+        
     }
 
     // Finalizamos o uso dos recursos do sistema operacional

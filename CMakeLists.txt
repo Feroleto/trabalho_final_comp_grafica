@@ -12,6 +12,11 @@ set(SOURCES
   src/tiny_obj_loader.cpp
   src/stb_image.cpp
   src/glad.c
+  
+  src/gameLogic/inputs/input_system.cpp
+  src/gameLogic/inputs/input_debug.cpp
+  src/gameLogic/inputs/platform_input.cpp
+  src/gameLogic/inputs/input_mapping.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)
