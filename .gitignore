@@ -1,2 +1,5 @@
 bin
 build
+compilation_infos.txt
+CMakeUserPresets.json
+.vscode/settings.json
