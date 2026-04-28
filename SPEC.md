@@ -6,11 +6,11 @@
 
 ## Integrantes da dupla
 
-- **Aluno 1 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 1 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 1 - Nome**: Guilherme Hilgert Feroleto
+- **Aluno 1 - Cartão UFRGS**: 587076
 
-- **Aluno 2 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 2 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 2 - Nome**: Henrique Wermann da Silva
+- **Aluno 2 - Cartão UFRGS**: 588786
 
 ## Detalhes do que será implementado
 
@@ -34,7 +34,7 @@
 >   do próprio repositório. Mas, garanta que qualquer um tenha
 >   permissão de acesso ao vídeo através deste link.
 
-<mark>`<preencher>`</mark>
+[text](https://www.youtube.com/watch?v=ikzuz2wL1X0)
 
 ### Vídeo - Timestamp
 
@@ -43,8 +43,8 @@
 >   será a base de comparação para avaliar se o seu trabalho final
 >   conseguiu ou não reproduzir a referência.
 
-- **Timestamp inicial**: <mark>`<preencher>`</mark>
-- **Timestamp final**: <mark>`<preencher>`</mark>
+- **Timestamp inicial**: 0
+- **Timestamp final**: 30
 
 ### Imagens
 
@@ -59,31 +59,31 @@
 Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final - Moodle](https://moodle.ufrgs.br/mod/assign/view.php?id=6018620)), escreva um parágrafo **curto** explicando como este requisito será atendido, apontando itens específicos do vídeo/imagens que você incluiu acima que atendem estes requisitos.
 
 ### Malhas poligonais complexas
-<mark>`<preencher>`</mark>
+Os objetos virtuais com malhas poligonais complexas serão representados principalmente pelos modelos dos dois personagens. Além disso, o cenário também contará com elementos adicionais ao fundo, inspirados no vídeo de referência, contribuindo para a composição visual do ambiente.
 
 ### Transformações geométricas controladas pelo usuário
-<mark>`<preencher>`</mark>
+As transformações geométricas controladas pelo usuário estarão diretamente relacionadas à movimentação e às ações do personagem. Por meio de entradas do teclado, o usuário poderá alterar a posição, permitindo deslocamento. Além disso, os golpes executados também serão implementados como transformações geométricas, envolvendo animações que modificam a pose do personagem ao longo do tempo.
 
 ### Diferentes tipos de câmeras
-<mark>`<preencher>`</mark>
+Serão implementados dois tipos de câmera para visualização da cena: uma câmera do tipo look-at e uma câmera livre. A câmera look-at será utilizada para manter o foco automático nos personagens, posicionando-se de forma a acompanhar a ação do combate. Já a câmera livre permitirá ao usuário explorar a cena de maneira independente, podendo mover-se e rotacionar livremente pelo ambiente.
 
 ### Instâncias de objetos
-<mark>`<preencher>`</mark>
+Os dois personagens que estarão lutando serão renderizados diversas vezs com diferentes Model Matrix. Cada instância vai possuir sua própria Model Matrix, responsável por definir suas tranformações. Isso permite que o mesmo modelo represente múltiplos objetos distintos na cena.
 
 ### Testes de intersecção
-<mark>`<preencher>`</mark>
+Os testes de intersecção serão feitos a partir dos golpes dos personagens. Cada golpe precisa "acertar" a hitbox para contar, esses testes serão utilizados para essa verificação.
 
 ### Modelos de Iluminação em todos os objetos
-<mark>`<preencher>`</mark>
+O modelo de iluminação utilizado será o de Blinn-Phong, uma variação do modelo de Phong amplamente empregada em aplicações gráficas em tempo real. Esse modelo considera três componentes principais: ambiente, difusa e especular, permitindo simular de forma eficiente a interação da luz com as superfícies dos objetos. Com isso, será possível obter resultados visuais mais realistas nos personagens e no cenário, mantendo um bom desempenho na renderização.
 
 ### Mapeamento de texturas em todos os objetos
-<mark>`<preencher>`</mark>
+O mapeamento de texturas será aplicado nos personagens, no chão e nos elementos do ambiente, com o objetivo de enriquecer o nível de detalhe visual. Assim será possível, por exemplo, aplicar texturas de roupa nos personagens, padrões no chão da arena e detalhes em objetos do cenário.
 
 ### Movimentação com curva Bézier cúbica
-<mark>`<preencher>`</mark>
+A movimentação do projétil será implementada utilizando uma curva Bézier cúbica, permitindo um trajeto suave e controlado entre o ponto de origem e o alvo. Nesse caso, ao executar um golpe com a espada, o projétil não seguirá uma linha reta, mas sim uma trajetória curva definida por pontos de controle.
 
 ### Animações baseadas no tempo ($\Delta t$)
-<mark>`<preencher>`</mark>
+A movimentação dos objetos será baseada no tempo, garantindo que o comportamento da aplicação seja consistente independentemente do desempenho do computador. Para isso, as posições e transformações dos objetos serão atualizadas utilizando o tempo decorrido entre quadros (delta time). Dessa forma, a velocidade dos movimentos permanece constante, evitando que o jogo fique mais rápido ou mais lento em máquinas diferentes.
 
 ## Limitações esperadas
 
