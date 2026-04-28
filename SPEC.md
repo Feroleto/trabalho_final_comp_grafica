@@ -94,4 +94,7 @@ A movimentação dos objetos será baseada no tempo, garantindo que o comportame
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-<mark>`<preencher>`</mark>
+- os golpes dos personagens serão implementados parcialmente, iremos fazer golpes específicos para cumprir requisitos do trabalho, como usar projéteis com movimentos baseados em curvas de Bézier.
+- A quantidade de golpes será restringida, pois não geram interações diferentes entre os personagens, além de dano e reação, e investiremos mais tempo para a implementação de outros aspectos do jogo.
+- A movimentação dos personagens será parcialmente implementada, não iremos incluir os movimentos em que o personagem dá cambalhotas para se movimentar, nem as animações em que o personagem fica parado, por exemplo os taunts. Acreditamos que implentar as animações dos golpes já nos concede uma experiência de aprendizagem proveitosa, e implementar todas as animações do personagem desviaria a atenção de outros aspectos do projeto.
+- Não serão implementados os textos que aparecem na tela, implementar a lógica de contador de combo e danos desvia do foco principal do trabalho. No lugar, implementaremos um mostrador da quantidade de vida restante do personagem.
