@@ -14,8 +14,8 @@
 
 ## Detalhes do que será implementado
 
-- **Título do trabalho**: <mark>`<preencher>`</mark>
-- **Parágrafo curto descrevendo o que será implementado**: <mark>`<preencher>`</mark>
+- **Título do trabalho**: Jogo de Luta
+- **Parágrafo curto descrevendo o que será implementado**: Será implementado um jogo de luta com base no jogo Tekken 3, lançado em 1997. No jogo será possível controlar um dos personagens e lutar contra o adversário. O personagem terá sua movimentação e um conjunto de golpes pré definidos com base a atender todas as especificações do trabalho.
 
 ## Especificação visual
 
