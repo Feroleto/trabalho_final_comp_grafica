@@ -52,7 +52,10 @@
 > - Coloque aqui **três imagens** capturadas do vídeo acima, que você
 >   irá usar como ilustração para as explicações que vêm abaixo.
 
-<mark>`<preencher>`</mark>
+<mark>`<
+![Diagrama](./imagensspec/imgspec1.png)
+![Diagrama](./imagensspec/imgspec2.png)
+![Diagrama](./imagensspec/imgspec3.png)>`</mark>
 
 ## Especificação textual
 
@@ -74,7 +77,7 @@ Os dois personagens que estarão lutando serão renderizados diversas vezs com d
 Os testes de intersecção serão feitos a partir dos golpes dos personagens. Cada golpe precisa "acertar" a hitbox para contar, esses testes serão utilizados para essa verificação.
 
 ### Modelos de Iluminação em todos os objetos
-O modelo de iluminação utilizado será o de Blinn-Phong, uma variação do modelo de Phong amplamente empregada em aplicações gráficas em tempo real. Esse modelo considera três componentes principais: ambiente, difusa e especular, permitindo simular de forma eficiente a interação da luz com as superfícies dos objetos. Com isso, será possível obter resultados visuais mais realistas nos personagens e no cenário, mantendo um bom desempenho na renderização.
+Os objetos do cenário, como o chão, as árvores e a construção, e o modelo dos personagens terão reflexão difusa. Ademais as espadas dos personagens terão uma fonte de luz pontual.
 
 ### Mapeamento de texturas em todos os objetos
 O mapeamento de texturas será aplicado nos personagens, no chão e nos elementos do ambiente, com o objetivo de enriquecer o nível de detalhe visual. Assim será possível, por exemplo, aplicar texturas de roupa nos personagens, padrões no chão da arena e detalhes em objetos do cenário.
