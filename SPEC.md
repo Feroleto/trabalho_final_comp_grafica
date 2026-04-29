@@ -52,10 +52,9 @@
 > - Coloque aqui **três imagens** capturadas do vídeo acima, que você
 >   irá usar como ilustração para as explicações que vêm abaixo.
 
-<mark>`<
 ![Diagrama](./imagensspec/imgspec1.png)
 ![Diagrama](./imagensspec/imgspec2.png)
-![Diagrama](./imagensspec/imgspec3.png)>`</mark>
+![Diagrama](./imagensspec/imgspec3.png)>
 
 ## Especificação textual
 
