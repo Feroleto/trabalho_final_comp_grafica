@@ -34,7 +34,7 @@
 >   do próprio repositório. Mas, garanta que qualquer um tenha
 >   permissão de acesso ao vídeo através deste link.
 
-[text](https://www.youtube.com/watch?v=ikzuz2wL1X0)
+[Link do vídeo](https://www.youtube.com/watch?v=ikzuz2wL1X0)
 
 ### Vídeo - Timestamp
 
