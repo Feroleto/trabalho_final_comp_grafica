@@ -72,6 +72,8 @@ Serão implementados dois tipos de câmera para visualização da cena: uma câm
 ### Instâncias de objetos
 Os dois personagens que estarão lutando serão renderizados diversas vezs com diferentes Model Matrix. Cada instância vai possuir sua própria Model Matrix, responsável por definir suas tranformações. Isso permite que o mesmo modelo represente múltiplos objetos distintos na cena.
 
+> Comentário Professor: Isso significa que os dois "lutadores" serão o mesmo modelo geométrico?
+
 ### Testes de intersecção
 Os testes de intersecção serão feitos a partir dos golpes dos personagens. Cada golpe precisa "acertar" a hitbox para contar, esses testes serão utilizados para essa verificação.
 
@@ -83,6 +85,8 @@ O mapeamento de texturas será aplicado nos personagens, no chão e nos elemento
 
 ### Movimentação com curva Bézier cúbica
 A movimentação do projétil será implementada utilizando uma curva Bézier cúbica, permitindo um trajeto suave e controlado entre o ponto de origem e o alvo. Nesse caso, ao executar um golpe com a espada, o projétil não seguirá uma linha reta, mas sim uma trajetória curva definida por pontos de controle.
+
+> Comentário Professor: "projétil" seria a espada?
 
 ### Animações baseadas no tempo ($\Delta t$)
 A movimentação dos objetos será baseada no tempo, garantindo que o comportamento da aplicação seja consistente independentemente do desempenho do computador. Para isso, as posições e transformações dos objetos serão atualizadas utilizando o tempo decorrido entre quadros (delta time). Dessa forma, a velocidade dos movimentos permanece constante, evitando que o jogo fique mais rápido ou mais lento em máquinas diferentes.
@@ -100,3 +104,5 @@ A movimentação dos objetos será baseada no tempo, garantindo que o comportame
 - A quantidade de golpes será restringida, pois não geram interações diferentes entre os personagens, além de dano e reação, e investiremos mais tempo para a implementação de outros aspectos do jogo.
 - A movimentação dos personagens será parcialmente implementada, não iremos incluir os movimentos em que o personagem dá cambalhotas para se movimentar, nem as animações em que o personagem fica parado, por exemplo os taunts. Acreditamos que implentar as animações dos golpes já nos concede uma experiência de aprendizagem proveitosa, e implementar todas as animações do personagem desviaria a atenção de outros aspectos do projeto.
 - Não serão implementados os textos que aparecem na tela, implementar a lógica de contador de combo e danos desvia do foco principal do trabalho. No lugar, implementaremos um mostrador da quantidade de vida restante do personagem.
+
+> Comentário Professor: Recomendo olharem o website https://rigmodels.com/ para obter animações
