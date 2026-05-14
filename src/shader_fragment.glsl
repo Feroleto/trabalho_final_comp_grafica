@@ -131,14 +131,17 @@ void main()
         U = texcoords.x;
         V = texcoords.y;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
-		Kd0 = texture(TextureImage1, vec2(U,V)).rgb;
+		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage2
+		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
     }
 
     // Equação de Iluminação
-    float lambert = max(0,dot(n,l));
+    float lambert = max(0.0 ,dot(n,l));
 
-    color.rgb = Kd0 * (lambert + 0.01);
+    float ambient = 0.6;
+
+    color.rgb = Kd0 * (ambient + lambert);
+    
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é
     // necessário:
@@ -156,6 +159,6 @@ void main()
 
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
-    color.rgb = pow(color.rgb, vec3(1.0,1.0,1.0)/2.2);
+    color.rgb = pow(color.rgb, vec3(1.0/2.2));
 } 
 
