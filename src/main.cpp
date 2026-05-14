@@ -261,6 +261,8 @@ int main(int argc, char* argv[])
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow* window;
+    printf("DEBUG: Creating GLFW window...\n");
+    fflush(stdout);
     window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
     if (!window)
     {
@@ -268,6 +270,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: glfwCreateWindow() failed.\n");
         std::exit(EXIT_FAILURE);
     }
+    printf("DEBUG: GLFW window created successfully.\n");
+    fflush(stdout);
 
     // Definimos a função de callback que será chamada sempre que o usuário
     // pressionar alguma tecla do teclado ...
@@ -279,11 +283,17 @@ int main(int argc, char* argv[])
 
 
     /////////////////////////////////////////////////////////////////DEBUG INPUTS
+    printf("DEBUG: Creating InputSystem...\n");
+    fflush(stdout);
     InputSystem inputSystem;
     InputDebugRenderer debugRenderer;
     ///////////////////////////////////////////////////////////////////////DEBUG INPUTS
     ///////////////////////////////////////////////////////////////////////////DEBUG INPUTS
+    printf("DEBUG: Initializing InputSystem...\n");
+    fflush(stdout);
     inputSystem.init(window);      // Configura os mapeamentos de teclas
+    printf("DEBUG: InputSystem initialized successfully.\n");
+    fflush(stdout);
     //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
 
 
@@ -321,24 +331,53 @@ int main(int argc, char* argv[])
     // Carregamos os shaders de vértices e de fragmentos que serão utilizados
     // para renderização. Veja slides 180-200 do documento Aula_03_Rendering_Pipeline_Grafico.pdf.
     //
+    printf("DEBUG: Loading shaders...\n");
+    fflush(stdout);
     LoadShadersFromFiles();
+    printf("DEBUG: Shaders loaded successfully.\n");
+    fflush(stdout);
 
     // Carregamos duas imagens para serem utilizadas como textura
+    printf("DEBUG: Loading texture 0...\n");
+    fflush(stdout);
     LoadTextureImage("../../data/red_brick_diff_1k.jpg");      // TextureImage0
+    printf("DEBUG: Loading texture 1...\n");
+    fflush(stdout);
     LoadTextureImage("../../data/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
+    printf("DEBUG: Textures loaded successfully.\n");
+    fflush(stdout);
+
+    // ===============================================================================
+    // adicionando textura para o plano
+    LoadTextureImage("../../data/floor_texture.jpg"); // TextureImage2
+    printf("DEBUG: Texture for plane loaded successfully.\n");
+    fflush(stdout);
+    // ===============================================================================
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
+    printf("DEBUG: Loading sphere model...\n");
+    fflush(stdout);
     ObjModel spheremodel("../../data/sphere.obj");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
+    printf("DEBUG: Sphere model loaded successfully.\n");
+    fflush(stdout);
 
+    printf("DEBUG: Loading bunny model...\n");
+    fflush(stdout);
     ObjModel bunnymodel("../../data/bunny.obj");
     ComputeNormals(&bunnymodel);
     BuildTrianglesAndAddToVirtualScene(&bunnymodel);
+    printf("DEBUG: Bunny model loaded successfully.\n");
+    fflush(stdout);
 
+    printf("DEBUG: Loading plane model...\n");
+    fflush(stdout);
     ObjModel planemodel("../../data/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
+    printf("DEBUG: Plane model loaded successfully.\n");
+    fflush(stdout);
 
     if ( argc > 1 )
     {
@@ -347,7 +386,11 @@ int main(int argc, char* argv[])
     }
 
     // Inicializamos o código para renderização de texto.
+    printf("DEBUG: Initializing text rendering...\n");
+    fflush(stdout);
     TextRendering_Init();
+    printf("DEBUG: Text rendering initialized successfully.\n");
+    fflush(stdout);
 
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
     glEnable(GL_DEPTH_TEST);
@@ -359,6 +402,8 @@ int main(int argc, char* argv[])
 
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
+    printf("DEBUG: Entering main render loop...\n");
+    fflush(stdout);
     while (!glfwWindowShouldClose(window))
     {
         // Verificamos com o sistema operacional se houve alguma interação do
@@ -446,7 +491,9 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        /*#define SPHERE 0
+        #define PLANE 2
+        /*
+        #define SPHERE 0
         #define BUNNY  1
         #define PLANE  2
 
@@ -465,16 +512,22 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BUNNY);
         DrawVirtualObject("the_bunny");
-
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
+        */
+       
+       // plano do chão
+        model = Matrix_Translate(0.0f,-1.0f,0.0f)
+              * Matrix_Scale(10.0f, 1.0f, 5.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
-        DrawVirtualObject("the_plane");*//////////////////////////////////////////////////////////////////////////////////
+        DrawVirtualObject("the_plane");
 
+        // =================================================================
+        // DEBUG NO TERMINAL E NA TELA
+        /*
         std::string debug = debugRenderer.buildString(inputSystem);
         TextRendering_PrintString(window, debug, 0.02f, 0.9f);
         printf("%s\n", debug.c_str());
+        */  
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////DEBUG INPUT
         
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
@@ -614,8 +667,14 @@ void LoadShadersFromFiles()
     //       |
     //       o-- shader_fragment.glsl
     //
+    printf("DEBUG: LoadShader_Vertex...\n");
+    fflush(stdout);
     GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
+    printf("DEBUG: LoadShader_Fragment...\n");
+    fflush(stdout);
     GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
+    printf("DEBUG: CreateGpuProgram...\n");
+    fflush(stdout);
 
     // Deletamos o programa de GPU anterior, caso ele exista.
     if ( g_GpuProgramID != 0 )
@@ -623,23 +682,33 @@ void LoadShadersFromFiles()
 
     // Criamos um programa de GPU utilizando os shaders carregados acima.
     g_GpuProgramID = CreateGpuProgram(vertex_shader_id, fragment_shader_id);
+    printf("DEBUG: g_GpuProgramID = %u\n", g_GpuProgramID);
+    fflush(stdout);
 
     // Buscamos o endereço das variáveis definidas dentro do Vertex Shader.
     // Utilizaremos estas variáveis para enviar dados para a placa de vídeo
     // (GPU)! Veja arquivo "shader_vertex.glsl" e "shader_fragment.glsl".
+    printf("DEBUG: Getting uniform locations...\n");
+    fflush(stdout);
     g_model_uniform      = glGetUniformLocation(g_GpuProgramID, "model"); // Variável da matriz "model"
     g_view_uniform       = glGetUniformLocation(g_GpuProgramID, "view"); // Variável da matriz "view" em shader_vertex.glsl
     g_projection_uniform = glGetUniformLocation(g_GpuProgramID, "projection"); // Variável da matriz "projection" em shader_vertex.glsl
     g_object_id_uniform  = glGetUniformLocation(g_GpuProgramID, "object_id"); // Variável "object_id" em shader_fragment.glsl
     g_bbox_min_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_min");
     g_bbox_max_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_max");
+    printf("DEBUG: Uniform locations obtained.\n");
+    fflush(stdout);
 
     // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
+    printf("DEBUG: Setting texture uniforms...\n");
+    fflush(stdout);
     glUseProgram(g_GpuProgramID);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
     glUseProgram(0);
+    printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
+    fflush(stdout);
 }
 
 // Função que pega a matriz M e guarda a mesma no topo da pilha
@@ -929,10 +998,18 @@ GLuint LoadShader_Vertex(const char* filename)
 {
     // Criamos um identificador (ID) para este shader, informando que o mesmo
     // será aplicado nos vértices.
+    printf("DEBUG: glCreateShader for vertex...\n");
+    fflush(stdout);
     GLuint vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
+    printf("DEBUG: Vertex shader ID created: %u\n", vertex_shader_id);
+    fflush(stdout);
 
     // Carregamos e compilamos o shader
+    printf("DEBUG: About to call LoadShader for vertex...\n");
+    fflush(stdout);
     LoadShader(filename, vertex_shader_id);
+    printf("DEBUG: LoadShader for vertex returned successfully\n");
+    fflush(stdout);
 
     // Retorna o ID gerado acima
     return vertex_shader_id;
@@ -943,17 +1020,24 @@ GLuint LoadShader_Fragment(const char* filename)
 {
     // Criamos um identificador (ID) para este shader, informando que o mesmo
     // será aplicado nos fragmentos.
+    printf("DEBUG: glCreateShader for fragment...\n");
+    fflush(stdout);
     GLuint fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
+    printf("DEBUG: Fragment shader ID created: %u\n", fragment_shader_id);
+    fflush(stdout);
 
     // Carregamos e compilamos o shader
+    printf("DEBUG: About to call LoadShader for fragment...\n");
+    fflush(stdout);
     LoadShader(filename, fragment_shader_id);
+    printf("DEBUG: LoadShader for fragment returned successfully\n");
+    fflush(stdout);
 
     // Retorna o ID gerado acima
     return fragment_shader_id;
 }
 
-// Função auxilar, utilizada pelas duas funções acima. Carrega código de GPU de
-// um arquivo GLSL e faz sua compilação.
+/*
 void LoadShader(const char* filename, GLuint shader_id)
 {
     // Lemos o arquivo de texto indicado pela variável "filename"
@@ -1020,6 +1104,126 @@ void LoadShader(const char* filename, GLuint shader_id)
 
     // A chamada "delete" em C++ é equivalente ao "free()" do C
     delete [] log;
+}
+*/
+
+// Função auxilar, utilizada pelas duas funções acima. Carrega código de GPU de
+// um arquivo GLSL e faz sua compilação.
+void LoadShader(const char* filename, GLuint shader_id)
+{
+    // Lemos o arquivo de texto indicado pela variável "filename"
+    printf("DEBUG: LoadShader - Opening file: %s\n", filename);
+    fflush(stdout);
+    
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
+        fprintf(stderr, "ERROR: Cannot open file \"%s\".\n", filename);
+        std::exit(EXIT_FAILURE);
+    }
+    printf("DEBUG: LoadShader - File opened successfully\n");
+    fflush(stdout);
+
+    // Encontramos o tamanho do arquivo
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    
+    printf("DEBUG: LoadShader - File size: %ld bytes\n", file_size);
+    fflush(stdout);
+
+    // Alocamos memória para o conteúdo do arquivo (adicionamos alguns bytes extras)
+    char* shader_buffer = new char[file_size + 10];
+    if (shader_buffer == NULL) {
+        fprintf(stderr, "ERROR: Cannot allocate memory for shader.\n");
+        fclose(file);
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Lemos o arquivo
+    printf("DEBUG: LoadShader - About to read file...\n");
+    fflush(stdout);
+    size_t read_size = fread(shader_buffer, 1, file_size, file);
+    printf("DEBUG: LoadShader - Read %zu bytes (expected %ld)\n", read_size, file_size);
+    fflush(stdout);
+    
+    // Se não lemos todos os bytes, ainda assim continuamos (pode ser por line endings)
+    if (read_size == 0) {
+        fprintf(stderr, "ERROR: Failed to read shader file.\n");
+        delete[] shader_buffer;
+        fclose(file);
+        std::exit(EXIT_FAILURE);
+    }
+    
+    // Null-terminate o buffer
+    shader_buffer[read_size] = '\0';
+    
+    printf("DEBUG: LoadShader - Closing file...\n");
+    fflush(stdout);
+    fclose(file);
+    printf("DEBUG: LoadShader - File closed successfully\n");
+    fflush(stdout);
+
+    // Define o código do shader GLSL
+    printf("DEBUG: LoadShader - Calling glShaderSource\n");
+    fflush(stdout);
+    const GLchar* shader_string = shader_buffer;
+    const GLint shader_string_length = (GLint)read_size;
+    glShaderSource(shader_id, 1, &shader_string, &shader_string_length);
+    printf("DEBUG: LoadShader - glShaderSource completed\n");
+    fflush(stdout);
+
+    // Compila o código do shader GLSL
+    printf("DEBUG: LoadShader - Calling glCompileShader\n");
+    fflush(stdout);
+    glCompileShader(shader_id);
+    printf("DEBUG: LoadShader - glCompileShader completed\n");
+    fflush(stdout);
+
+    // Verificamos se ocorreu algum erro durante a compilação
+    GLint compiled_ok;
+    glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compiled_ok);
+
+    GLint log_length = 0;
+    glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &log_length);
+
+    // Alocamos memória para guardar o log de compilação
+    GLchar* log = new GLchar[log_length + 1];
+    glGetShaderInfoLog(shader_id, log_length, &log_length, log);
+
+    
+    // Imprime no terminal qualquer erro ou "warning" de compilação
+    if (log_length != 0)
+    {
+        if (!compiled_ok)
+        {
+            fprintf(stderr, "ERROR: OpenGL compilation of \"%s\" failed.\n", filename);
+            fprintf(stderr, "== Start of compilation log\n");
+            fprintf(stderr, "%s", log);
+            fprintf(stderr, "== End of compilation log\n");
+        }
+        else
+        {
+            fprintf(stderr, "WARNING: OpenGL compilation of \"%s\".\n", filename);
+            fprintf(stderr, "== Start of compilation log\n");
+            fprintf(stderr, "%s", log);
+            fprintf(stderr, "== End of compilation log\n");
+        }
+    }
+
+    printf("DEBUG: Before delete log\n");
+    fflush(stdout);
+    delete[] log;
+    printf("DEBUG: After delete log\n");
+    fflush(stdout);
+    
+    printf("DEBUG: Before delete shader_buffer\n");
+    fflush(stdout);
+    delete[] shader_buffer;
+    printf("DEBUG: After delete shader_buffer\n");
+    fflush(stdout);
+    
+    printf("DEBUG: LoadShader completed successfully\n");
+    fflush(stdout);
 }
 
 // Esta função cria um programa de GPU, o qual contém obrigatoriamente um
