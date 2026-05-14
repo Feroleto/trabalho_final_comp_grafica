@@ -352,6 +352,11 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/floor_texture.jpg"); // TextureImage2
     printf("DEBUG: Texture for plane loaded successfully.\n");
     fflush(stdout);
+
+    // adicionando textura para o fundo
+    LoadTextureImage("../../data/background_texture.jpg"); // TextureImage3
+    printf("DEBUG: Texture for background loaded successfully.\n");
+    fflush(stdout);
     // ===============================================================================
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
@@ -492,6 +497,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
         #define PLANE 2
+        #define BACKGROUND 3
         /*
         #define SPHERE 0
         #define BUNNY  1
@@ -513,12 +519,21 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, BUNNY);
         DrawVirtualObject("the_bunny");
         */
-       
+
        // plano do chão
         model = Matrix_Translate(0.0f,-1.0f,0.0f)
               * Matrix_Scale(10.0f, 1.0f, 5.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
+        DrawVirtualObject("the_plane");
+
+        // plano do fundo
+        // mesmo plano do chao (plane.obj), mas rotacionado 90 graus para ficar em pé
+        model = Matrix_Translate(0.0f, 3.0f, -5.0f)
+              * Matrix_Rotate_X(3.141592 / 2.0f)
+              * Matrix_Scale(10.0f, 1.0f, 4.0);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BACKGROUND);
         DrawVirtualObject("the_plane");
 
         // =================================================================
@@ -706,6 +721,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3);
     glUseProgram(0);
     printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
     fflush(stdout);
