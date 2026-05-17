@@ -224,7 +224,7 @@ GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
 
 GLuint g_isColliding_uniform;
-GLuint g_isPotential_uniform;
+GLuint g_isPotentiallyColliding_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
@@ -458,7 +458,7 @@ int main(int argc, char* argv[])
         collisionSystem.update();
 
         bool isColliding = collisionSystem.CollisionManifold.colliding;
-        bool isPotential = (collisionSystem.objectCandidates.size() >= 0);
+        bool isPotential = !collisionSystem.objectCandidates.empty();
 
 
         /*if(collisionSystem.CollisionManifold.colliding) {
@@ -597,28 +597,18 @@ int main(int argc, char* argv[])
                 //* Matrix_Scale(10.0f, 10.0f, 10.0f);
 
         glUniform1i(g_isColliding_uniform, isColliding);
-        glUniform1i(g_isPotential_uniform, isPotential);
+        glUniform1i(g_isPotentiallyColliding_uniform, isPotential);
         
         model = player.bodies[0].finalMatrix;
 
-        glUniformMatrix4fv(
-            g_model_uniform,
-            1,
-            GL_FALSE,
-            glm::value_ptr(model)
-        );
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
 
         glUniform1i(g_object_id_uniform, CUBE);
         DrawVirtualObject("the_cube");
 
         model = object.bodies[0].finalMatrix;
 
-        glUniformMatrix4fv(
-            g_model_uniform,
-            1,
-            GL_FALSE,
-            glm::value_ptr(model)
-        );
+        glUniformMatrix4fv( g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
 
         glUniform1i(g_object_id_uniform, CUBE);
         DrawVirtualObject("the_cube");
@@ -803,7 +793,7 @@ void LoadShadersFromFiles()
 
 
     g_isColliding_uniform = glGetUniformLocation(g_GpuProgramID, "u_isColliding");
-    g_isPotential_uniform = glGetUniformLocation(g_GpuProgramID, "u_isPotential");
+    g_isPotentiallyColliding_uniform = glGetUniformLocation(g_GpuProgramID, "u_isPotentiallyColliding");
 
 
 

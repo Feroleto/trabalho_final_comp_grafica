@@ -46,7 +46,7 @@ out vec4 color;
 
 
 uniform bool u_isColliding;//booleanos para o cubo mudar de cor no teste de colisao
-uniform bool u_isPotentialyColliding;
+uniform bool u_isPotentiallyColliding;
 
 
 
@@ -160,7 +160,7 @@ void main()
         color.rgb = vec3(0.0, 1.0, 0.0); 
         color.a = 1.0;
 
-        if(u_isPotentialyColliding){
+        if(u_isPotentiallyColliding){
             color.rgb = vec3(1.0, 0.0, 0.0); 
         }
 
