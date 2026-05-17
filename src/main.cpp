@@ -357,6 +357,16 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/background_texture.jpg"); // TextureImage3
     printf("DEBUG: Texture for background loaded successfully.\n");
     fflush(stdout);
+
+    // TEXTURAS PARA O MODELO DO PERSONAGEM
+    LoadTextureImage("../../data/3D_model/Body_baseColor.png"); // TextureImage4
+    LoadTextureImage("../../data/3D_model/Chains_baseColor.png"); // TextureImage5
+    LoadTextureImage("../../data/3D_model/Hand_baseColor.png"); // TextureImage6
+    LoadTextureImage("../../data/3D_model/Hand_metallicRoughness.png"); // TextureImage7
+    LoadTextureImage("../../data/3D_model/Head_baseColor.png"); // TextureImage8
+    LoadTextureImage("../../data/3D_model/Legs_baseColor.png"); // TextureImage9
+    printf("DEBUG: Texture for character loaded successfully.\n");
+    fflush(stdout);
     // ===============================================================================
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
@@ -382,6 +392,16 @@ int main(int argc, char* argv[])
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
     printf("DEBUG: Plane model loaded successfully.\n");
+    fflush(stdout);
+
+    // ===============================================================================
+    // ADICIONANDO MODELO DO PERSONAGEM
+    printf("DEBUG: Loading character model...\n");
+    fflush(stdout);
+    ObjModel charactermodel("../../data/3D_model/3D_test_model.obj");
+    ComputeNormals(&charactermodel);
+    BuildTrianglesAndAddToVirtualScene(&charactermodel);
+    printf("DEBUG: Character model loaded successfully.\n");
     fflush(stdout);
 
     if ( argc > 1 )
@@ -496,13 +516,12 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
+        // #define SPHERE 0
+        // #define BUNNY 1
         #define PLANE 2
         #define BACKGROUND 3
-        /*
-        #define SPHERE 0
-        #define BUNNY  1
-        #define PLANE  2
 
+        /*
         // Desenhamos o modelo da esfera
         model = Matrix_Translate(-1.0f,0.0f,0.0f)
               * Matrix_Rotate_Z(0.6f)
@@ -536,13 +555,100 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, BACKGROUND);
         DrawVirtualObject("the_plane");
 
+        // ===================================================================
+        // MODELO DO PERSONAGEM
+        #define BODY 4
+        #define HAND1 5
+        #define HEAD 6
+        #define PLANE0 7
+        #define PLANE1 8
+        #define PLANE2 9
+        #define LEGS1 10
+        #define CHAINS0 11
+        #define CHAINS1 12
+        #define CHAINS2 13
+        #define CHAINS3 14
+        #define CHAINS4 15
+        #define CHAINS5 16
+        #define LEGS2 17
+        #define HAND2 18
+
+        // matriz de transformação do modelo do personagem
+        model = Matrix_Translate(0.0f, 0.5f, 0.0f)
+                * Matrix_Scale(0.8f, 0.8f, 0.8f)
+                * Matrix_Rotate_Y(3.141592);
+
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+
+        // BODY
+        glUniform1i(g_object_id_uniform, BODY);
+        DrawVirtualObject("Cylinder_Body_0");
+
+        // HAND1
+        glUniform1i(g_object_id_uniform, HAND1);
+        DrawVirtualObject("Sphere_Hand_0");
+
+        // HEAD
+        glUniform1i(g_object_id_uniform, HEAD);
+        DrawVirtualObject("Cylinder.005_Head_0");
+
+        // PLANE 0
+        glUniform1i(g_object_id_uniform, PLANE0);
+        DrawVirtualObject("PLANE__0");
+
+        // PLANE 1
+        glUniform1i(g_object_id_uniform, PLANE1);
+        DrawVirtualObject("PLANE.001__0");
+
+        // PLANE 2
+        glUniform1i(g_object_id_uniform, PLANE2);
+        DrawVirtualObject("PLANE.002__0");
+
+        // LEGS 1
+        glUniform1i(g_object_id_uniform, LEGS1);
+        DrawVirtualObject("Cylinder.003_Legs_0");
+
+        // CHAINS 1
+        glUniform1i(g_object_id_uniform, CHAINS0);
+        DrawVirtualObject("Torus.002_Chains_0");
+
+        // CHAINS 2
+        glUniform1i(g_object_id_uniform, CHAINS1);
+        DrawVirtualObject("Torus.004_Chains_0");
+
+        // CHAINS 3
+        glUniform1i(g_object_id_uniform, CHAINS2);
+        DrawVirtualObject("Torus.005_Chains_0");
+
+        // CHAINS 4
+        glUniform1i(g_object_id_uniform, CHAINS3);
+        DrawVirtualObject("Torus.006_Chains_0");
+
+        // CHAINS 5
+        glUniform1i(g_object_id_uniform, CHAINS4);
+        DrawVirtualObject("Torus.007_Chains_0");
+
+        // CHAINS 6
+        glUniform1i(g_object_id_uniform, CHAINS5);
+        DrawVirtualObject("Torus.008_Chains_0");
+
+        // LEGS 2
+        glUniform1i(g_object_id_uniform, LEGS2);
+        DrawVirtualObject("Cylinder.001_Legs_0");
+
+        // HAND 2
+        glUniform1i(g_object_id_uniform, HAND2);
+        DrawVirtualObject("Sphere.001_Hand_0");
+        // ===================================================================
+
+
         // =================================================================
         // DEBUG NO TERMINAL E NA TELA
         /*
         std::string debug = debugRenderer.buildString(inputSystem);
         TextRendering_PrintString(window, debug, 0.02f, 0.9f);
         printf("%s\n", debug.c_str());
-        */  
+        */
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////DEBUG INPUT
         
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
@@ -718,10 +824,18 @@ void LoadShadersFromFiles()
     printf("DEBUG: Setting texture uniforms...\n");
     fflush(stdout);
     glUseProgram(g_GpuProgramID);
+    // ================================================================================
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage4"), 4);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage8"), 8);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage9"), 9);
+    // ================================================================================
     glUseProgram(0);
     printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
     fflush(stdout);
