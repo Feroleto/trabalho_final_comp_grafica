@@ -232,6 +232,28 @@ GLuint g_NumLoadedTextures = 0;
      ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 ////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 
+// ===============================================================================
+// include dos inputs
+#include "gameLogic\inputs\direction.h"
+// ===============================================================================
+
+// ===============================================================================
+// VARIAVEIS PARA MOVIMENTACAO DO PERSONAGEM
+
+// posicao
+float g_CharacterX = 0.0f;
+float g_CharacterY = 0.5f;
+float g_CharacterZ = 0.0f;
+
+// limites de movimentacao
+const float PLANE_LIMIT_X = 4.0f;
+const float PLANE_LIMIT_Z = 2.0f;
+
+// velocidade de movimento
+const float MOVE_SPEED = 0.05F;
+// ===============================================================================
+
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -438,7 +460,24 @@ int main(int argc, char* argv[])
         glfwPollEvents();
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
         inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
-    
+
+        // ============================================================================
+        // INPUTS DE MOVIMENTACAO DO PERSONAGEM
+        int direction = resolveDirection(inputSystem.mapping);
+
+        if (direction == 4 || direction == 1 || direction == 7) // Esquerda
+            g_CharacterX -= MOVE_SPEED;
+        if (direction == 6 || direction == 3 || direction == 9) // Direita
+            g_CharacterX += MOVE_SPEED;
+        if (direction == 2 || direction == 1 || direction == 3)
+            g_CharacterZ += MOVE_SPEED;
+        if (direction == 8 || direction == 7 || direction == 9)
+            g_CharacterZ -= MOVE_SPEED;
+
+        // limitacao do personagem para nao sair do plano
+        g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
+        g_CharacterZ = glm::clamp(g_CharacterZ, -PLANE_LIMIT_Z, PLANE_LIMIT_Z);
+
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
 
         // Aqui executamos as operações de renderização
@@ -574,7 +613,7 @@ int main(int argc, char* argv[])
         #define HAND2 18
 
         // matriz de transformação do modelo do personagem
-        model = Matrix_Translate(0.0f, 0.5f, 0.0f)
+        model = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
                 * Matrix_Scale(0.8f, 0.8f, 0.8f)
                 * Matrix_Rotate_Y(3.141592);
 
