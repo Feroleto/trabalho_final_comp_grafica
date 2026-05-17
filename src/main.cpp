@@ -40,6 +40,7 @@
 #include <glm/vec4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+
 // Headers da biblioteca para carregar modelos obj
 #include <tiny_obj_loader.h>
 
@@ -222,6 +223,9 @@ GLint g_object_id_uniform;
 GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
 
+GLuint g_isColliding_uniform;
+GLuint g_isPotential_uniform;
+
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
@@ -229,8 +233,13 @@ GLuint g_NumLoadedTextures = 0;
 #include "gameLogic\inputs\input_debug.h"
 #include "gameLogic\inputs\input_system.h"
 #include "gameLogic\inputs\platform_input.h"
+#include "gameLogic\collision_system\Body3D.h"
+#include "gameLogic\collision_system\CollisionSystem.h"
+#include "gameLogic\entities\player\Player.h"
      ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 ////////////////////////////////////////////////////////////////////////////INPUT DEBUG
+
+
 
 int main(int argc, char* argv[])
 {
@@ -283,19 +292,31 @@ int main(int argc, char* argv[])
 
 
     /////////////////////////////////////////////////////////////////DEBUG INPUTS
-    printf("DEBUG: Creating InputSystem...\n");
-    fflush(stdout);
-    InputSystem inputSystem;
-    InputDebugRenderer debugRenderer;
+    //printf("DEBUG: Creating InputSystem...\n");
+    //fflush(stdout);
+    //InputSystem inputSystem;
+    //InputDebugRenderer debugRenderer;
+
+    Body3D playerBody(1.0f, 1.0f, 1.0f, {0.0f, 0.0f, 0.0f}, {0.7f, 0.0f, 0.7f});
+    Player player(window); // Supondo que sua struct Object tenha um std::vector<Body3D> bodies
+    player.bodies.push_back(playerBody);
+    Body3D enemyBody(1.0f, 1.0f, 1.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f});
+    Object object;
+    object.bodies.push_back(enemyBody);
+    object.update();
+    std::vector<Object*> objects = { &object };
+    CollisionSystem collisionSystem(&player, &objects, nullptr);
     ///////////////////////////////////////////////////////////////////////DEBUG INPUTS
     ///////////////////////////////////////////////////////////////////////////DEBUG INPUTS
-    printf("DEBUG: Initializing InputSystem...\n");
-    fflush(stdout);
-    inputSystem.init(window);      // Configura os mapeamentos de teclas
-    printf("DEBUG: InputSystem initialized successfully.\n");
-    fflush(stdout);
+    //printf("DEBUG: Initializing InputSystem...\n");
+    //fflush(stdout);
+    //inputSystem.init(window);      // Configura os mapeamentos de teclas
+    //printf("DEBUG: InputSystem initialized successfully.\n");
+    //fflush(stdout);
     //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
-
+    float currentFrame = glfwGetTime();
+    float delta;
+    float lastFrame = currentFrame;
 
     
     // ... ou clicar os botões do mouse ...
@@ -384,6 +405,14 @@ int main(int argc, char* argv[])
     printf("DEBUG: Plane model loaded successfully.\n");
     fflush(stdout);
 
+    printf("DEBUG: Loading cube model...\n");
+    fflush(stdout);
+    ObjModel cubemodel("../../data/cube.obj");
+    ComputeNormals(&cubemodel);
+    BuildTrianglesAndAddToVirtualScene(&cubemodel);
+    printf("DEBUG: cube model loaded successfully.\n");
+    fflush(stdout);
+
     if ( argc > 1 )
     {
         ObjModel model(argv[1]);
@@ -416,8 +445,29 @@ int main(int argc, char* argv[])
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
         glfwPollEvents();
+
+
+        currentFrame = glfwGetTime();
+        delta = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
-        inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
+        //inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
+        
+        player.update(delta);
+        collisionSystem.update();
+
+        bool isColliding = collisionSystem.CollisionManifold.colliding;
+        bool isPotential = (collisionSystem.objectCandidates.size() >= 0);
+
+
+        /*if(collisionSystem.CollisionManifold.colliding) {
+            printf("Colidindo");
+        }
+
+        if(!collisionSystem.bodyCandidates.empty()) {
+            printf("Potencial");
+        }*/
     
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
 
@@ -496,8 +546,10 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
+
         #define PLANE 2
         #define BACKGROUND 3
+        #define CUBE 4
         /*
         #define SPHERE 0
         #define BUNNY  1
@@ -535,6 +587,43 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BACKGROUND);
         DrawVirtualObject("the_plane");
+
+        //model = Matrix_Translate(0.0f, 0.0f, 0.0f);
+
+
+        /*model = Matrix_Translate(player.bodies[0].getGlobalPosition().x, player.bodies[0].getGlobalPosition().y, player.bodies[0].getGlobalPosition().z)
+                * Matrix_Rotate_X(player.bodies[0].localTransform.rotation.x)
+                * Matrix_Rotate_Z(player.bodies[0].localTransform.rotation.z);*/
+                //* Matrix_Scale(10.0f, 10.0f, 10.0f);
+
+        glUniform1i(g_isColliding_uniform, isColliding);
+        glUniform1i(g_isPotential_uniform, isPotential);
+        
+        model = player.bodies[0].finalMatrix;
+
+        glUniformMatrix4fv(
+            g_model_uniform,
+            1,
+            GL_FALSE,
+            glm::value_ptr(model)
+        );
+
+        glUniform1i(g_object_id_uniform, CUBE);
+        DrawVirtualObject("the_cube");
+
+        model = object.bodies[0].finalMatrix;
+
+        glUniformMatrix4fv(
+            g_model_uniform,
+            1,
+            GL_FALSE,
+            glm::value_ptr(model)
+        );
+
+        glUniform1i(g_object_id_uniform, CUBE);
+        DrawVirtualObject("the_cube");
+
+        
 
         // =================================================================
         // DEBUG NO TERMINAL E NA TELA
@@ -711,6 +800,14 @@ void LoadShadersFromFiles()
     g_object_id_uniform  = glGetUniformLocation(g_GpuProgramID, "object_id"); // Variável "object_id" em shader_fragment.glsl
     g_bbox_min_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_min");
     g_bbox_max_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_max");
+
+
+    g_isColliding_uniform = glGetUniformLocation(g_GpuProgramID, "u_isColliding");
+    g_isPotential_uniform = glGetUniformLocation(g_GpuProgramID, "u_isPotential");
+
+
+
+
     printf("DEBUG: Uniform locations obtained.\n");
     fflush(stdout);
 
@@ -1842,4 +1939,3 @@ void PrintObjModelInfo(ObjModel* model)
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
 // vim: set spell spelllang=pt_br :
-

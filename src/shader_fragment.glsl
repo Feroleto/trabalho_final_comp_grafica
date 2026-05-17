@@ -23,6 +23,7 @@ uniform mat4 projection;
 #define BUNNY  1
 #define PLANE  2
 #define BACKGROUND 3
+#define CUBE 4
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -41,6 +42,15 @@ out vec4 color;
 // Constantes
 #define M_PI   3.14159265358979323846
 #define M_PI_2 1.57079632679489661923
+
+
+
+uniform bool u_isColliding;//booleanos para o cubo mudar de cor no teste de colisao
+uniform bool u_isPotentialyColliding;
+
+
+
+
 
 void main()
 {
@@ -72,6 +82,7 @@ void main()
 
 	// Coeficiente de refletância difusa
 	vec3 Kd0;
+
 
     if ( object_id == SPHERE )
     {
@@ -142,6 +153,24 @@ void main()
         V = texcoords.y;
 
         Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+    }
+    else if ( object_id == CUBE ) {
+        // Verde limão puro (0.0, 1.0, 0.0)
+        // Ignoramos texturas e luz aqui para a linha ficar sempre visível
+        color.rgb = vec3(0.0, 1.0, 0.0); 
+        color.a = 1.0;
+
+        if(u_isPotentialyColliding){
+            color.rgb = vec3(1.0, 0.0, 0.0); 
+        }
+
+        if(u_isColliding){
+            color.rgb = vec3(0.0, 0.0, 1.0); 
+        }
+        
+        // Aplicamos a correção gamma para manter o brilho correto no monitor
+        color.rgb = pow(color.rgb, vec3(1.0/2.2));
+        return; // SAÍDA PRECOCE: não executa o resto do shader
     }
 
     // Equação de Iluminação
