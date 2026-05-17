@@ -23,6 +23,21 @@ uniform mat4 projection;
 #define BUNNY  1
 #define PLANE  2
 #define BACKGROUND 3
+#define BODY 4
+#define HAND1 5
+#define HEAD 6
+#define PLANE0 7
+#define PLANE1 8
+#define PLANE2 9
+#define LEGS1 10
+#define CHAINS0 11
+#define CHAINS1 12
+#define CHAINS2 13
+#define CHAINS3 14
+#define CHAINS4 15
+#define CHAINS5 16
+#define LEGS2 17
+#define HAND2 18
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -34,6 +49,13 @@ uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
+uniform sampler2D TextureImage7;
+uniform sampler2D TextureImage8;
+uniform sampler2D TextureImage9;
+
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -136,14 +158,49 @@ void main()
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage2
 		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
     }
-    else if ( object_id == BACKGROUND)
+    else if ( object_id == BACKGROUND )
     {
         U = texcoords.x;
         V = texcoords.y;
-
         Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
     }
-
+    else if ( object_id == BODY )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage4, vec2(U,V)).rgb;
+    }
+    else if ( object_id == HAND1 || object_id == HAND2 )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage6, vec2(U,V)).rgb;
+    }
+    else if ( object_id == HEAD )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage8, vec2(U,V)).rgb;
+    }
+    else if ( object_id == LEGS1 || object_id == LEGS2 )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage9, vec2(U,V)).rgb;
+    }
+    else if ( object_id == CHAINS0 || object_id == CHAINS1 || object_id == CHAINS2 || object_id == CHAINS3 || object_id == CHAINS4 || object_id == CHAINS5 )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage5, vec2(U,V)).rgb;
+    }
+    else if ( object_id == PLANE0 || object_id == PLANE1 || object_id == PLANE2 )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage4, vec2(U,V)).rgb; // usa a textura do body ou a que fizer mais sentido
+    }
+    
     // Equação de Iluminação
     float lambert = max(0.0 ,dot(n,l));
 
