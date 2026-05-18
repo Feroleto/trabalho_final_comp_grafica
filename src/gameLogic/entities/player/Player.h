@@ -2,6 +2,7 @@
 #include "../Character.h"
 #include "../../inputs/input_system.h"
 #include "PlayerInput.h"
+#include <cstdio>
 
 class Player : public Character {
     InputSystem inputSystem;
