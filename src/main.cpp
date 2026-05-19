@@ -297,7 +297,7 @@ int main(int argc, char* argv[])
     //InputSystem inputSystem;
     //InputDebugRenderer debugRenderer;
 
-    Body3D playerBody(1.0f, 1.0f, 1.0f, {0.0f, 0.0f, 0.0f}, {0.7f, 0.0f, 0.7f});
+    Body3D playerBody(3.0f, 1.0f, 2.0f, {0.0f, 0.0f, 0.0f}, {0.7f, 0.0f, 0.7f});
     Player player(window); // Supondo que sua struct Object tenha um std::vector<Body3D> bodies
     player.bodies.push_back(playerBody);
     Body3D enemyBody(1.0f, 1.0f, 1.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f});
@@ -454,7 +454,7 @@ int main(int argc, char* argv[])
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
         //inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
         
-        player.update(delta);
+        player.update(delta, &object);
         collisionSystem.update();
 
         bool isColliding = collisionSystem.CollisionManifold.colliding;
@@ -607,6 +607,20 @@ int main(int argc, char* argv[])
         DrawVirtualObject("the_cube");
 
         model = object.bodies[0].finalMatrix;
+
+        glUniformMatrix4fv( g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+
+        glUniform1i(g_object_id_uniform, CUBE);
+        DrawVirtualObject("the_cube");
+
+        model = player.projectiles[0].hitbox.finalMatrix;
+
+        glUniformMatrix4fv( g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+
+        glUniform1i(g_object_id_uniform, CUBE);
+        DrawVirtualObject("the_cube");
+
+        model = player.projectiles[1].hitbox.finalMatrix;
 
         glUniformMatrix4fv( g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
 
@@ -969,7 +983,7 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
         size_t first_index = indices.size();
         size_t num_triangles = model->shapes[shape].mesh.num_face_vertices.size();
 
-        const float minval = std::numeric_limits<float>::min();
+        const float minval = std::numeric_limits<float>::lowest();
         const float maxval = std::numeric_limits<float>::max();
 
         glm::vec3 bbox_min = glm::vec3(maxval,maxval,maxval);

@@ -20,7 +20,7 @@ class Player : public Character {
         fflush(stdout);
     }
 
-    void update(float delta) {
+    void update(float delta, Object* enemyObject) {
         inputSystem.update();
         actionIntention = inputHandler.update(inputSystem.getBuffer());
 
@@ -54,6 +54,13 @@ class Player : public Character {
             transform.dirty = true;
         }
 
+        if(actionIntention == PlayerAction::FIREBALL) {
+            if(!projectiles[0].isActive && !projectiles[1].isActive) {
+                spawnBezierProjectiles(this, enemyObject, &projectiles[0], &projectiles[1]);
+            }
+        }
+
+        updateBezier(nullptr, &projectiles[0], &projectiles[1]);
 
         Character::update();
     }

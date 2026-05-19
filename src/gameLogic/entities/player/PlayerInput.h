@@ -40,6 +40,9 @@ struct PlayerInput {
         if (last.direction == 4) {
             actionIntention = PlayerAction::WALK_LEFT;
         }
+        if (last.buttons & 0x01) {
+            actionIntention = PlayerAction::FIREBALL;
+        }
 
         return actionIntention;
 

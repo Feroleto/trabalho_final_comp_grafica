@@ -2,8 +2,6 @@
 #include "utilStructures.h"
 
 struct Body3D {
-    glm::vec3 size; //(width, height, depth)
-
     // em relação à origem do object que ela faz parte
     Transform3D localTransform;
 
@@ -16,11 +14,13 @@ struct Body3D {
     glm::vec3 worldCorners[8];
     glm::vec3 worldAxes[3];
 
+    bool isActive = true;
+
     Body3D(float width, float height, float depth, glm::vec3 offsetPos = {0,0,0}, glm::vec3 offsetRot = {0,0,0}) {
-        size = {width, height, depth};
         localTransform.position = offsetPos;
         localTransform.rotation = offsetRot;
-        localTransform.scale = {1, 1, 1};
+        localTransform.scale = {width, height, depth};
+        isActive = true;
         localTransform.dirty = true;
     }
 
@@ -48,9 +48,9 @@ struct Body3D {
         });
 
         // vertices do OBB para o SAT
-        float hw = size.x / 2.0f;
-        float hh = size.y / 2.0f;
-        float hd = size.z / 2.0f;
+        float hw = 0.5f;
+        float hh = 0.5f;
+        float hd = 0.5f;
 
         glm::vec3 localCorners[8] = {
             {-hw,-hh,-hd}, {hw,-hh,-hd}, {-hw,hh,-hd}, {hw,hh,-hd},
