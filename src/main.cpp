@@ -117,7 +117,7 @@ void PopMatrix(glm::mat4& M);
 void BuildTrianglesAndAddToVirtualScene(ObjModel*); // Constrói representação de um ObjModel como malha de triângulos para renderização
 void ComputeNormals(ObjModel* model); // Computa normais de um ObjModel, caso não existam.
 void LoadShadersFromFiles(); // Carrega os shaders de vértice e fragmento, criando um programa de GPU
-void LoadTextureImage(const char* filename); // Função que carrega imagens de textura
+GLuint LoadTextureImage(const char* filename); // Função que carrega imagens de textura
 void DrawVirtualObject(const char* object_name); // Desenha um objeto armazenado em g_VirtualScene
 GLuint LoadShader_Vertex(const char* filename);   // Carrega um vertex shader
 GLuint LoadShader_Fragment(const char* filename); // Carrega um fragment shader
@@ -233,6 +233,10 @@ GLint g_anim_bones_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
+
+// IDs das texturas para rebinding
+GLuint g_FloorTextureID = 0;
+GLuint g_BackgroundTextureID = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 #include "gameLogic\inputs\input_debug.h"
@@ -394,46 +398,21 @@ int main(int argc, char* argv[])
     g_anim_projection_uniform = glGetUniformLocation(g_AnimatedProgramID, "projection");
     g_anim_bones_uniform = glGetUniformLocation(g_AnimatedProgramID, "boneMatrices");
 
-
-
-    // SE DEIXA ISSO COMENTADO, A JANELA DE EXECUÇÃO FICA PRETA
-    // Carregamos duas imagens para serem utilizadas como textura
-    printf("DEBUG: Loading texture 0...\n");
-    fflush(stdout);
-    LoadTextureImage("../../data/red_brick_diff_1k.jpg");      // TextureImage0
-    printf("DEBUG: Loading texture 1...\n");
-    fflush(stdout);
-    LoadTextureImage("../../data/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
-    printf("DEBUG: Textures loaded successfully.\n");
-    fflush(stdout);
-
+    
     // ===============================================================================
     // adicionando textura para o plano
-    LoadTextureImage("../../data/floor_texture.jpg"); // TextureImage2
+    g_FloorTextureID = LoadTextureImage("../../data/ambient/floor_texture.jpg"); // TextureImage0
     printf("DEBUG: Texture for plane loaded successfully.\n");
     fflush(stdout);
 
     // adicionando textura para o fundo
-    LoadTextureImage("../../data/background_texture.jpg"); // TextureImage3
+    g_BackgroundTextureID = LoadTextureImage("../../data/ambient/background_texture.jpg"); // TextureImage1
     printf("DEBUG: Texture for background loaded successfully.\n");
     fflush(stdout);
 
-    /*
-    // TEXTURAS PARA O MODELO DO PERSONAGEM
-    LoadTextureImage("../../data/3D_model/Body_baseColor.png"); // TextureImage4
-    LoadTextureImage("../../data/3D_model/Chains_baseColor.png"); // TextureImage5
-    LoadTextureImage("../../data/3D_model/Hand_baseColor.png"); // TextureImage6
-    LoadTextureImage("../../data/3D_model/Hand_metallicRoughness.png"); // TextureImage7
-    LoadTextureImage("../../data/3D_model/Head_baseColor.png"); // TextureImage8
-    LoadTextureImage("../../data/3D_model/Legs_baseColor.png"); // TextureImage9
-    printf("DEBUG: Texture for character loaded successfully.\n");
-    fflush(stdout);
-    */
-    // ===============================================================================
-
     printf("DEBUG: Loading plane model...\n");
     fflush(stdout);
-    ObjModel planemodel("../../data/plane.obj");
+    ObjModel planemodel("../../data/ambient/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
     printf("DEBUG: Plane model loaded successfully.\n");
@@ -611,10 +590,15 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        #define PLANE 2
-        #define BACKGROUND 3
+        #define PLANE 0
+        #define BACKGROUND 1
 
        // plano do chão
+        // Rebind floor texture para garantir que está na unit 10
+        //glActiveTexture(GL_TEXTURE0 + 10);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
+        
         model = Matrix_Translate(0.0f,-1.0f,0.0f)
               * Matrix_Scale(10.0f, 1.0f, 5.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
@@ -622,6 +606,11 @@ int main(int argc, char* argv[])
         DrawVirtualObject("the_plane");
 
         // plano do fundo
+        // Rebind background texture para garantir que está na unit 11
+        //glActiveTexture(GL_TEXTURE0 + 11);
+        glActiveTexture(GL_TEXTURE0 + 1);
+        glBindTexture(GL_TEXTURE_2D, g_BackgroundTextureID);
+        
         // mesmo plano do chao (plane.obj), mas rotacionado 90 graus para ficar em pé
         model = Matrix_Translate(0.0f, 3.0f, -5.0f)
               * Matrix_Rotate_X(3.141592 / 2.0f)
@@ -650,6 +639,8 @@ int main(int argc, char* argv[])
                         (GLsizei)g_Character.boneMatrices.size(),
                         GL_FALSE,
                         glm::value_ptr(g_Character.boneMatrices[0]));
+
+        glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
 
         // faz o desenho do modelo
         g_Character.draw();
@@ -697,7 +688,7 @@ int main(int argc, char* argv[])
 }
 
 // Função que carrega uma imagem para ser utilizada como textura
-void LoadTextureImage(const char* filename)
+GLuint LoadTextureImage(const char* filename)
 {
     printf("Carregando imagem \"%s\"... ", filename);
 
@@ -746,6 +737,8 @@ void LoadTextureImage(const char* filename)
     stbi_image_free(data);
 
     g_NumLoadedTextures += 1;
+
+    return texture_id;
 }
 
 // Função que desenha um objeto armazenado em g_VirtualScene. Veja definição
@@ -841,16 +834,8 @@ void LoadShadersFromFiles()
     fflush(stdout);
     glUseProgram(g_GpuProgramID);
     // ================================================================================
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage4"), 4);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage8"), 8);
-    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage9"), 9);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0); // imagem do plano
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1); // imagem do background
     // ================================================================================
     glUseProgram(0);
     printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
