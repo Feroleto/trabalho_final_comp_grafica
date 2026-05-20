@@ -33,6 +33,44 @@ inline glm::vec3 cross(const glm::vec3& a, const glm::vec3& b) {
     };
 }
 
+inline glm::mat4 rotateM(glm::vec3 rotation) {
+    float cx = cos(rotation.x), sx = sin(rotation.x);
+    float cy = cos(rotation.y), sy = sin(rotation.y);
+    float cz = cos(rotation.z), sz = sin(rotation.z);
+
+    glm::mat4 Rx(1.0f);
+    Rx[1][1] = cx;
+    Rx[1][2] = sx;
+    Rx[2][1] = -sx;
+    Rx[2][2] = cx;
+
+    glm::mat4 Ry(1.0f);
+    Ry[0][0] = cy;
+    Ry[0][2] = -sy;
+    Ry[2][0] = sy;
+    Ry[2][2] = cy;
+
+    glm::mat4 Rz(1.0f);
+    Rz[0][0] = cz;
+    Rz[0][1] = sz;
+    Rz[1][0] = -sz;
+    Rz[1][1] = cz;
+
+    return Rz * (Ry * Rx);
+}   
+
+inline glm::mat4 translateM(glm::vec3 position) {
+    glm::mat4 T = glm::mat4(1.0f);
+    T[3][0] = position.x; T[3][1] = position.y; T[3][2] = position.z;
+    return T;
+}
+
+inline glm::mat4 scaleM(glm::vec3 scale) {
+    glm::mat4 S = glm::mat4(1.0f);
+    S[0][0] = scale.x; S[1][1] = scale.y; S[2][2] = scale.z;
+    return S;
+}
+
 struct AABB {
     glm::vec3 min;
     glm::vec3 max;
@@ -69,7 +107,7 @@ struct Transform3D {
         //if (!dirty) return;
 
         // Escala
-        glm::mat4 S = glm::mat4(1.0f);
+        /*glm::mat4 S = glm::mat4(1.0f);
         S[0][0] = scale.x; S[1][1] = scale.y; S[2][2] = scale.z;
 
         float cx = cos(rotation.x), sx = sin(rotation.x);
@@ -96,10 +134,14 @@ struct Transform3D {
 
         // Translação
         glm::mat4 T = glm::mat4(1.0f);
-        T[3][0] = position.x; T[3][1] = position.y; T[3][2] = position.z;
+        T[3][0] = position.x; T[3][1] = position.y; T[3][2] = position.z;*/
 
         // Combinação: M = T * Rz * Ry * Rx * S
-        glm::mat4 R = Rz * (Ry * Rx);
+        //glm::mat4 R = Rz * (Ry * Rx);
+        glm::mat4 R = rotateM(rotation);
+        glm::mat4 T = translateM(position);
+        glm::mat4 S = scaleM(scale);
+
         modelMatrix = T * (R * S);
 
         dirty = false;

@@ -19,6 +19,7 @@ set(SOURCES
   src/gameLogic/inputs/input_mapping.cpp
   src/gameLogic/collision_system/CollisionSystem.cpp
   src/gameLogic/attacks/attacks.cpp
+  src/camera/camera.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)

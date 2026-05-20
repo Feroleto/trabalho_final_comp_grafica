@@ -1,3 +1,7 @@
+#ifndef GAMELOGIC_ENTITIES_OBJECT_H
+#define GAMELOGIC_ENTITIES_OBJECT_H
+#pragma once
+
 #include <vector>
 #include "../collision_system/Body3D.h"
 
@@ -42,3 +46,4 @@ private:
         }
     }
 };
+#endif // GAMELOGIC_ENTITIES_OBJECT_H
