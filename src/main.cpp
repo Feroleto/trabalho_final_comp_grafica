@@ -222,6 +222,15 @@ GLint g_object_id_uniform;
 GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
 
+// ============================================================================
+// variaveis para o segundo programa de GPU
+GLuint g_AnimatedProgramID = 0;
+GLint g_anim_model_uniform;
+GLint g_anim_view_uniform;
+GLint g_anim_projection_uniform;
+GLint g_anim_bones_uniform;
+// ===========================================================================
+
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
@@ -237,12 +246,25 @@ GLuint g_NumLoadedTextures = 0;
 #include "gameLogic\inputs\direction.h"
 // ===============================================================================
 
+// ==============================================================================
+// include do modelo do personagem
+#include "character\animatedModel.h"
+// ==============================================================================
+
+// ==============================================================================
+// VARIAVEIS PARA O PERSONAGEM
+AnimatedModel g_Character;
+std::string g_CurrentAnimation = "idle";
+float g_AnimationTime = 0.0f;
+float g_LastFrameTime = 0.0f;
+
+
 // ===============================================================================
 // VARIAVEIS PARA MOVIMENTACAO DO PERSONAGEM
 
 // posicao
 float g_CharacterX = 0.0f;
-float g_CharacterY = 0.5f;
+float g_CharacterY = -1.0f;
 float g_CharacterZ = 0.0f;
 
 // limites de movimentacao
@@ -250,7 +272,7 @@ const float PLANE_LIMIT_X = 4.0f;
 const float PLANE_LIMIT_Z = 2.0f;
 
 // velocidade de movimento
-const float MOVE_SPEED = 0.05F;
+const float MOVE_SPEED = 0.02F;
 // ===============================================================================
 
 
@@ -359,6 +381,22 @@ int main(int argc, char* argv[])
     printf("DEBUG: Shaders loaded successfully.\n");
     fflush(stdout);
 
+    // ===============================================================================
+    // CARREGANDO SHADERS DO MODELO ANIMADO
+    printf("DEBUG: Loading animated shaders...\n");
+    fflush(stdout);
+    GLuint anim_vert = LoadShader_Vertex("../../src/shader_vertex_animated.glsl");
+    GLuint anim_frag = LoadShader_Fragment("../../src/shader_fragment_animated.glsl");
+    g_AnimatedProgramID = CreateGpuProgram(anim_vert, anim_frag);
+
+    g_anim_model_uniform = glGetUniformLocation(g_AnimatedProgramID, "model");
+    g_anim_view_uniform = glGetUniformLocation(g_AnimatedProgramID, "view");
+    g_anim_projection_uniform = glGetUniformLocation(g_AnimatedProgramID, "projection");
+    g_anim_bones_uniform = glGetUniformLocation(g_AnimatedProgramID, "boneMatrices");
+
+
+
+    // SE DEIXA ISSO COMENTADO, A JANELA DE EXECUÇÃO FICA PRETA
     // Carregamos duas imagens para serem utilizadas como textura
     printf("DEBUG: Loading texture 0...\n");
     fflush(stdout);
@@ -380,6 +418,7 @@ int main(int argc, char* argv[])
     printf("DEBUG: Texture for background loaded successfully.\n");
     fflush(stdout);
 
+    /*
     // TEXTURAS PARA O MODELO DO PERSONAGEM
     LoadTextureImage("../../data/3D_model/Body_baseColor.png"); // TextureImage4
     LoadTextureImage("../../data/3D_model/Chains_baseColor.png"); // TextureImage5
@@ -389,24 +428,8 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/3D_model/Legs_baseColor.png"); // TextureImage9
     printf("DEBUG: Texture for character loaded successfully.\n");
     fflush(stdout);
+    */
     // ===============================================================================
-
-    // Construímos a representação de objetos geométricos através de malhas de triângulos
-    printf("DEBUG: Loading sphere model...\n");
-    fflush(stdout);
-    ObjModel spheremodel("../../data/sphere.obj");
-    ComputeNormals(&spheremodel);
-    BuildTrianglesAndAddToVirtualScene(&spheremodel);
-    printf("DEBUG: Sphere model loaded successfully.\n");
-    fflush(stdout);
-
-    printf("DEBUG: Loading bunny model...\n");
-    fflush(stdout);
-    ObjModel bunnymodel("../../data/bunny.obj");
-    ComputeNormals(&bunnymodel);
-    BuildTrianglesAndAddToVirtualScene(&bunnymodel);
-    printf("DEBUG: Bunny model loaded successfully.\n");
-    fflush(stdout);
 
     printf("DEBUG: Loading plane model...\n");
     fflush(stdout);
@@ -416,15 +439,25 @@ int main(int argc, char* argv[])
     printf("DEBUG: Plane model loaded successfully.\n");
     fflush(stdout);
 
+    // ==============================================================================
+    // ADICIONANDO MODELO DO YOSHIMITSU
+    printf("DEBUG: Loading yoshimitsu model...\n");
+    fflush(stdout);
+    // carrega modelo do yoshimitsu (rig model)
+    g_Character.loadModel("../../data/Yoshimitsu_model/Tpose.fbx");
+    printf("DEBUG: Yoshimitsu model loaded successfully.\n");
+    fflush(stdout);
+
+    // CARREGANDO ANIMAÇÕES
+    printf("DEBUG: loading character animations...\n");
+    fflush(stdout);
+    g_Character.loadAnimation("idle", "../../data/Yoshimitsu_model/Idle.fbx");
+    g_Character.loadAnimation("walk_forward", "../../data/Yoshimitsu_model/Walk_forward.fbx");
+    g_Character.loadAnimation("walk_backwards", "../../data/Yoshimitsu_model/Walk_backwards.fbx");
+    g_Character.loadAnimation("strafe_left", "../../data/Yoshimitsu_model/Strafe_left.fbx");
+    g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_model/Strafe_right.fbx");
     // ===============================================================================
-    // ADICIONANDO MODELO DO PERSONAGEM
-    printf("DEBUG: Loading character model...\n");
-    fflush(stdout);
-    ObjModel charactermodel("../../data/3D_model/3D_test_model.obj");
-    ComputeNormals(&charactermodel);
-    BuildTrianglesAndAddToVirtualScene(&charactermodel);
-    printf("DEBUG: Character model loaded successfully.\n");
-    fflush(stdout);
+
 
     if ( argc > 1 )
     {
@@ -477,6 +510,29 @@ int main(int argc, char* argv[])
         // limitacao do personagem para nao sair do plano
         g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
         g_CharacterZ = glm::clamp(g_CharacterZ, -PLANE_LIMIT_Z, PLANE_LIMIT_Z);
+        // =============================================================================
+
+        // =============================================================================
+        // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
+        float currentTime = (float)glfwGetTime();
+        float deltaTime = currentTime - g_LastFrameTime;
+        g_LastFrameTime = currentTime;
+        g_AnimationTime += deltaTime;
+
+        if (direction == 6)
+            g_CurrentAnimation = "walk_forward";
+        else if (direction == 4)
+            g_CurrentAnimation = "walk_backwards";
+        else if (direction == 2)
+            g_CurrentAnimation = "strafe_right";
+        else if (direction == 8)
+            g_CurrentAnimation = "strafe_left";
+        else
+            g_CurrentAnimation = "idle";
+
+        // atualizacao dos bones
+        g_Character.update(g_AnimationTime, g_CurrentAnimation);
+        // =============================================================================
 
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
 
@@ -555,28 +611,8 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        // #define SPHERE 0
-        // #define BUNNY 1
         #define PLANE 2
         #define BACKGROUND 3
-
-        /*
-        // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-1.0f,0.0f,0.0f)
-              * Matrix_Rotate_Z(0.6f)
-              * Matrix_Rotate_X(0.2f)
-              * Matrix_Rotate_Y(g_AngleY + (float)glfwGetTime() * 0.1f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        DrawVirtualObject("the_sphere");
-
-        // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f,0.0f,0.0f)
-              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, BUNNY);
-        DrawVirtualObject("the_bunny");
-        */
 
        // plano do chão
         model = Matrix_Translate(0.0f,-1.0f,0.0f)
@@ -594,92 +630,33 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, BACKGROUND);
         DrawVirtualObject("the_plane");
 
-        // ===================================================================
-        // MODELO DO PERSONAGEM
-        #define BODY 4
-        #define HAND1 5
-        #define HEAD 6
-        #define PLANE0 7
-        #define PLANE1 8
-        #define PLANE2 9
-        #define LEGS1 10
-        #define CHAINS0 11
-        #define CHAINS1 12
-        #define CHAINS2 13
-        #define CHAINS3 14
-        #define CHAINS4 15
-        #define CHAINS5 16
-        #define LEGS2 17
-        #define HAND2 18
+        // =================================================================
+        // MODELO DO YOSHIMITSU
+        // troca para shader animado
+        glUseProgram(g_AnimatedProgramID);
 
-        // matriz de transformação do modelo do personagem
-        model = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
-                * Matrix_Scale(0.8f, 0.8f, 0.8f)
-                * Matrix_Rotate_Y(3.141592);
+        // envia view e projection
+        glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        // envia matriz de modelo
+        glm::mat4 charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
+                            * Matrix_Scale(0.01f, 0.01f, 0.01f)
+                            * Matrix_Rotate_Y(3.141592 / 2.0f);
+        glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(charModel));
+        
+        // Envia as matrizes dos bones
+        glUniformMatrix4fv(g_anim_bones_uniform,
+                        (GLsizei)g_Character.boneMatrices.size(),
+                        GL_FALSE,
+                        glm::value_ptr(g_Character.boneMatrices[0]));
 
-        // BODY
-        glUniform1i(g_object_id_uniform, BODY);
-        DrawVirtualObject("Cylinder_Body_0");
+        // faz o desenho do modelo
+        g_Character.draw();
 
-        // HAND1
-        glUniform1i(g_object_id_uniform, HAND1);
-        DrawVirtualObject("Sphere_Hand_0");
-
-        // HEAD
-        glUniform1i(g_object_id_uniform, HEAD);
-        DrawVirtualObject("Cylinder.005_Head_0");
-
-        // PLANE 0
-        glUniform1i(g_object_id_uniform, PLANE0);
-        DrawVirtualObject("PLANE__0");
-
-        // PLANE 1
-        glUniform1i(g_object_id_uniform, PLANE1);
-        DrawVirtualObject("PLANE.001__0");
-
-        // PLANE 2
-        glUniform1i(g_object_id_uniform, PLANE2);
-        DrawVirtualObject("PLANE.002__0");
-
-        // LEGS 1
-        glUniform1i(g_object_id_uniform, LEGS1);
-        DrawVirtualObject("Cylinder.003_Legs_0");
-
-        // CHAINS 1
-        glUniform1i(g_object_id_uniform, CHAINS0);
-        DrawVirtualObject("Torus.002_Chains_0");
-
-        // CHAINS 2
-        glUniform1i(g_object_id_uniform, CHAINS1);
-        DrawVirtualObject("Torus.004_Chains_0");
-
-        // CHAINS 3
-        glUniform1i(g_object_id_uniform, CHAINS2);
-        DrawVirtualObject("Torus.005_Chains_0");
-
-        // CHAINS 4
-        glUniform1i(g_object_id_uniform, CHAINS3);
-        DrawVirtualObject("Torus.006_Chains_0");
-
-        // CHAINS 5
-        glUniform1i(g_object_id_uniform, CHAINS4);
-        DrawVirtualObject("Torus.007_Chains_0");
-
-        // CHAINS 6
-        glUniform1i(g_object_id_uniform, CHAINS5);
-        DrawVirtualObject("Torus.008_Chains_0");
-
-        // LEGS 2
-        glUniform1i(g_object_id_uniform, LEGS2);
-        DrawVirtualObject("Cylinder.001_Legs_0");
-
-        // HAND 2
-        glUniform1i(g_object_id_uniform, HAND2);
-        DrawVirtualObject("Sphere.001_Hand_0");
-        // ===================================================================
-
+        // volta para o shader original
+        glUseProgram(g_GpuProgramID);
+        // =================================================================
 
         // =================================================================
         // DEBUG NO TERMINAL E NA TELA
