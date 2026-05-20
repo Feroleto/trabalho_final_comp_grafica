@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stb_image.h>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -30,6 +31,12 @@ struct Animation {
     const aiScene* scene;
 };
 
+struct MeshEntry {
+    unsigned int indexOffset;
+    unsigned int indexCount;
+    unsigned int materialIndex;
+};
+
 class AnimatedModel {
 public:
     // carrega modelo base (rig model)
@@ -38,14 +45,23 @@ public:
     // carrega animacao do FBX
     bool loadAnimation(const std::string& name, const std::string& path);
 
+    // carrega as texturas do modelo
+    GLuint loadTexture(const std::string& path);
+    void loadMaterialTextures();
+
     // atualiza bones para o tempo atual
     void update(float timeInSeconds, const std::string& animName);
 
     // desenha o modelo
     void draw();
 
+    // getter para a cena do modelo base
+    const aiScene* getModelScene() const { return modelScene; }
+
     // matrizes dos bones para enviar ao shader
     std::vector<glm::mat4> boneMatrices;
+
+    std::vector<MeshEntry> meshEntries;
 
 private:
     // dados do modelo
@@ -67,6 +83,12 @@ private:
 
     // cena do modelo base (rig model)
     const aiScene* modelScene = nullptr;
+
+    // uma textura por material
+    std::vector<GLuint> materialTextures;
+
+    // pasta onde ta o arquivo FBX do modelo
+    std::string modelDirectory;
 
     // funções
     void processNode(aiNode* node, const aiScene* scene);

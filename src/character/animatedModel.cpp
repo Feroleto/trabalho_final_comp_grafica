@@ -21,6 +21,10 @@ bool AnimatedModel::loadModel(const std::string& path) {
 
     processNode(modelScene->mRootNode, modelScene);
     setupBuffers();
+
+    modelDirectory = path.substr(0, path.find_last_of("/\\"));
+    loadMaterialTextures();
+
     boneMatrices.resize(boneCount, glm::mat4(1.0f));
     printf("Modelo carregado: %d bones, %zu vertices\n", boneCount, vertices.size());
     return true;
@@ -65,6 +69,7 @@ void AnimatedModel::processNode(aiNode* node, const aiScene* scene) {
 
 void AnimatedModel::processMesh(aiMesh* mesh, const aiScene* scene) {
     unsigned int baseVertex = (unsigned int)vertices.size();
+    unsigned int baseIndex = (unsigned int)indices.size();
 
     // Vértices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -117,6 +122,12 @@ void AnimatedModel::processMesh(aiMesh* mesh, const aiScene* scene) {
             }
         }
     }
+
+    MeshEntry entry;
+    entry.indexOffset = baseIndex;
+    entry.indexCount = mesh->mNumFaces * 3;
+    entry.materialIndex = mesh->mMaterialIndex;
+    meshEntries.push_back(entry);
 }
 
 void AnimatedModel::setupBuffers() {
@@ -250,8 +261,56 @@ void AnimatedModel::calcBoneTransforms(const std::string& animName,
     }
 }
 
+GLuint AnimatedModel::loadTexture(const std::string& path) {
+    GLuint texID;
+    glGenTextures(1, &texID);
+
+    int w, h, channels;
+    unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 0);
+    if (data) {
+        GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
+        glBindTexture(GL_TEXTURE_2D, texID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        stbi_image_free(data);
+        printf("Textura carregada: %s\n", path.c_str());
+    } else {
+        printf("Erro ao carregar textura: %s\n", path.c_str());
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    return texID;
+}
+
+void AnimatedModel::loadMaterialTextures() {
+    materialTextures.resize(modelScene->mNumMaterials, 0);
+    for (unsigned int i = 0; i < modelScene->mNumMaterials; i++) {
+        aiMaterial* mat = modelScene->mMaterials[i];
+        aiString texPath;
+        if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
+            std::string fullPath(texPath.C_Str());
+            std::string fileName = fullPath.substr(fullPath.find_last_of("/\\") + 1);
+            std::string localPath = modelDirectory + "/../Yoshimitsu_textures/" + fileName;
+            materialTextures[i] = loadTexture(localPath);
+        }
+    }
+}
+
 void AnimatedModel::draw() {
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+    for (size_t i = 0; i < meshEntries.size(); i++) {
+        unsigned int matIdx = meshEntries[i].materialIndex;
+        if (matIdx < materialTextures.size() && materialTextures[matIdx] != 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, materialTextures[matIdx]);
+        }
+        glDrawElements(GL_TRIANGLES,
+                       (GLsizei)meshEntries[i].indexCount,
+                       GL_UNSIGNED_INT,
+                       (void*)(meshEntries[i].indexOffset * sizeof(unsigned int)));
+    }
     glBindVertexArray(0);
 }
