@@ -444,18 +444,18 @@ int main(int argc, char* argv[])
     printf("DEBUG: Loading yoshimitsu model...\n");
     fflush(stdout);
     // carrega modelo do yoshimitsu (rig model)
-    g_Character.loadModel("../../data/Yoshimitsu_model/Tpose.fbx");
+    g_Character.loadModel("../../data/Yoshimitsu_animations/Tpose.fbx");
     printf("DEBUG: Yoshimitsu model loaded successfully.\n");
     fflush(stdout);
 
     // CARREGANDO ANIMAÇÕES
     printf("DEBUG: loading character animations...\n");
     fflush(stdout);
-    g_Character.loadAnimation("idle", "../../data/Yoshimitsu_model/Idle.fbx");
-    g_Character.loadAnimation("walk_forward", "../../data/Yoshimitsu_model/Walk_forward.fbx");
-    g_Character.loadAnimation("walk_backwards", "../../data/Yoshimitsu_model/Walk_backwards.fbx");
-    g_Character.loadAnimation("strafe_left", "../../data/Yoshimitsu_model/Strafe_left.fbx");
-    g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_model/Strafe_right.fbx");
+    g_Character.loadAnimation("idle", "../../data/Yoshimitsu_animations/Idle.fbx");
+    g_Character.loadAnimation("walk_forward", "../../data/Yoshimitsu_animations/Walk_forward.fbx");
+    g_Character.loadAnimation("walk_backwards", "../../data/Yoshimitsu_animations/Walk_backwards.fbx");
+    g_Character.loadAnimation("strafe_left", "../../data/Yoshimitsu_animations/Strafe_left.fbx");
+    g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     // ===============================================================================
 
 
