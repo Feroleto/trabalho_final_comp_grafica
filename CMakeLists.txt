@@ -17,6 +17,8 @@ set(SOURCES
   src/gameLogic/inputs/input_debug.cpp
   src/gameLogic/inputs/platform_input.cpp
   src/gameLogic/inputs/input_mapping.cpp
+
+  src/character/animatedModel.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)
@@ -62,7 +64,11 @@ endforeach()
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE 
+  ${PROJECT_SOURCE_DIR}/include
+  C:/msys64/ucrt64/include
+  #C:/msys64/ucrt64/include/assimp
+)
 
 if(WIN32)
 
@@ -104,7 +110,37 @@ if(WIN32)
 
   message(STATUS "LIBGLFW = ${LIBGLFW}")
 
-  target_link_libraries(${EXECUTABLE_NAME} ${LIBGLFW} gdi32 opengl32)
+  target_link_libraries(${EXECUTABLE_NAME} 
+    ${LIBGLFW} 
+    gdi32 
+    opengl32
+    C:/msys64/ucrt64/lib/libassimp.dll.a  
+  )
+
+  # fazer cópia das DLLs necessárias para o diretório de saída
+  add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "C:/msys64/ucrt64/bin/libassimp-6.dll"
+      $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
+  )
+  
+  add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "C:/msys64/ucrt64/bin/libstdc++-6.dll"
+      $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
+  )
+  
+  add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "C:/msys64/ucrt64/bin/libgcc_s_seh-1.dll"
+      $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
+  )
+  
+  add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "C:/msys64/ucrt64/bin/libwinpthread-1.dll"
+      $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
+  )
 
 elseif(UNIX)
 
