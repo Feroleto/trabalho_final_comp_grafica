@@ -314,3 +314,11 @@ void AnimatedModel::draw() {
     }
     glBindVertexArray(0);
 }
+
+float AnimatedModel::getAnimationDuration(const std::string& name) const {
+    auto it = animations.find(name);
+    if (it == animations.end()) return 0.0f;
+    const Animation& a = it->second;
+    if (a.ticksPerSecond == 0.0f) return 0.0f;
+    return a.duration / a.ticksPerSecond; // duration in seconds
+}

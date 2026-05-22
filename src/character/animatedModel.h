@@ -52,6 +52,9 @@ public:
     // atualiza bones para o tempo atual
     void update(float timeInSeconds, const std::string& animName);
 
+    // retorna a duracao da animacao em segundos (0 se nao existir)
+    float getAnimationDuration(const std::string& name) const;
+
     // desenha o modelo
     void draw();
 
