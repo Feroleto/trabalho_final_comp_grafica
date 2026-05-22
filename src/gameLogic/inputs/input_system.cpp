@@ -10,7 +10,6 @@ void InputSystem::init(GLFWwindow* window) {
 
 void InputSystem::update() {
     readInput(mapping, buffer);
-    g_input.update();
 }
 
 /*void InputSystem::updateWithHistory() {
