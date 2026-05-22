@@ -262,6 +262,8 @@ AnimatedModel g_Character;
 std::string g_CurrentAnimation = "idle";
 float g_AnimationTime = 0.0f;
 float g_LastFrameTime = 0.0f;
+// tempo (em segundos) até quando uma animação forçada (ataque) deve ser reproduzida
+float g_ForcedAnimationEnd = 0.0f;
 
 
 // ===============================================================================
@@ -436,6 +438,8 @@ int main(int argc, char* argv[])
     g_Character.loadAnimation("walk_backwards", "../../data/Yoshimitsu_animations/Walk_backwards.fbx");
     g_Character.loadAnimation("strafe_left", "../../data/Yoshimitsu_animations/Strafe_left.fbx");
     g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
+    g_Character.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
+    g_Character.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
     // ===============================================================================
 
     // ===============================================================================
@@ -482,22 +486,37 @@ int main(int argc, char* argv[])
         // usuário (teclado, mouse, ...). Caso positivo, as funções de callback
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
+        // Atualiza o estado anterior dos inputs (copiando current -> previous)
+        g_input.update();
+        // Processa eventos do GLFW, que atualizam `g_input.current`
         glfwPollEvents();
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
         inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
 
         // ============================================================================
         // INPUTS DE MOVIMENTACAO DO PERSONAGEM
+        // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
+        float currentTime = (float)glfwGetTime();
+        float deltaTime = currentTime - g_LastFrameTime;
+        g_LastFrameTime = currentTime;
+        g_AnimationTime += deltaTime;
+
         int direction = resolveDirection(inputSystem.mapping);
 
-        if (direction == 4 || direction == 1 || direction == 7) // Esquerda
-            g_CharacterX -= MOVE_SPEED;
-        if (direction == 6 || direction == 3 || direction == 9) // Direita
-            g_CharacterX += MOVE_SPEED;
-        if (direction == 2 || direction == 1 || direction == 3)
-            g_CharacterZ += MOVE_SPEED;
-        if (direction == 8 || direction == 7 || direction == 9)
-            g_CharacterZ -= MOVE_SPEED;
+        if (currentTime < g_ForcedAnimationEnd) {
+            // Se uma animação forçada está em progresso, ignoramos os inputs de movimentação.
+        } else {
+
+            if (direction == 4 || direction == 1 || direction == 7) // Esquerda
+                g_CharacterX -= MOVE_SPEED;
+            if (direction == 6 || direction == 3 || direction == 9) // Direita
+                g_CharacterX += MOVE_SPEED;
+            if (direction == 2 || direction == 1 || direction == 3)
+                g_CharacterZ += MOVE_SPEED;
+            if (direction == 8 || direction == 7 || direction == 9)
+                g_CharacterZ -= MOVE_SPEED;
+        }
+        
 
         // limitacao do personagem para nao sair do plano
         g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
@@ -506,21 +525,48 @@ int main(int argc, char* argv[])
 
         // =============================================================================
         // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
-        float currentTime = (float)glfwGetTime();
-        float deltaTime = currentTime - g_LastFrameTime;
-        g_LastFrameTime = currentTime;
-        g_AnimationTime += deltaTime;
 
-        if (direction == 6)
-            g_CurrentAnimation = "walk_forward";
-        else if (direction == 4)
-            g_CurrentAnimation = "walk_backwards";
-        else if (direction == 2)
-            g_CurrentAnimation = "strafe_right";
-        else if (direction == 8)
-            g_CurrentAnimation = "strafe_left";
-        else
-            g_CurrentAnimation = "idle";
+        // Se apertou STRONG_ATTACK (tecla 'O') e não estamos em outra animação forçada,
+        // inicia a animação de ataque "triple_slash_attack" do início e marca seu fim.
+        if (inputSystem.mapping.justPressed(STRONG_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
+            printf("DEBUG: STRONG_ATTACK justPressed detected\n"); fflush(stdout);
+            float dur = g_Character.getAnimationDuration("triple_slash_attack");
+            printf("DEBUG: triple_slash_attack duration = %.3f seconds\n", dur); fflush(stdout);
+            if (dur <= 0.0f) dur = 1.0f; // fallback
+            g_CurrentAnimation = "triple_slash_attack";
+            g_AnimationTime = 0.0f;
+            g_ForcedAnimationEnd = currentTime + dur;
+            printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
+        }
+
+        // se apertou MEDIUM_ATTACK (tecla 'i') e não estamos em outra animação forçada,
+        // se inicia a animação de ataque "sword_combo" do inicio e marca seu fim
+        if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
+            printf("DEBUG: MEDIUM_ATTACK justPressed detected\n"); fflush(stdout);
+            float dur = g_Character.getAnimationDuration("sword_combo");
+            printf("DEBUG: sword_combo duration = %.3f seconds\n", dur); fflush(stdout);
+            if (dur <= 0.0f) dur = 1.0f; // fallback
+            g_CurrentAnimation = "sword_combo";
+            g_AnimationTime = 0.0f;
+            g_ForcedAnimationEnd = currentTime + dur;
+            printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
+        }
+
+        // Se uma animação forçada está em progresso, mantemos `g_CurrentAnimation`.
+        if (currentTime < g_ForcedAnimationEnd) {
+            // mantém a animação atual (ação/ataque)
+        } else {
+            if (direction == 6)
+                g_CurrentAnimation = "walk_forward";
+            else if (direction == 4)
+                g_CurrentAnimation = "walk_backwards";
+            else if (direction == 2)
+                g_CurrentAnimation = "strafe_right";
+            else if (direction == 8)
+                g_CurrentAnimation = "strafe_left";
+            else
+                g_CurrentAnimation = "idle";
+        }
 
         // atualizacao dos bones
         g_Character.update(g_AnimationTime, g_CurrentAnimation);
