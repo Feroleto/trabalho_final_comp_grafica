@@ -21,6 +21,7 @@ uniform mat4 projection;
 // Identificador que define qual objeto está sendo desenhado no momento
 #define PLANE  0
 #define BACKGROUND 1
+#define SWORD 2
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -30,6 +31,7 @@ uniform vec4 bbox_max;
 // Variáveis para acesso das imagens de textura
 uniform sampler2D TextureImage0; // PLANE
 uniform sampler2D TextureImage1; // BACKGROUND
+uniform sampler2D TextureImage2; // SWORD
 
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
@@ -86,6 +88,13 @@ void main()
         V = texcoords.y;
         Kd0 = texture(TextureImage1, vec2(U,V)).rgb;
     }
+    else if ( object_id == SWORD)
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
+    }
+
     
     // Equação de Iluminação
     float lambert = max(0.0 ,dot(n,l));
