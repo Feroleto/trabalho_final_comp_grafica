@@ -58,6 +58,15 @@ public:
     // getter para a cena do modelo base
     const aiScene* getModelScene() const { return modelScene; }
 
+    // retorna a matriz global de um bone pelo nome
+    glm::mat4 getBoneMatrix(const std::string& boneName) const {
+        auto it = boneNameToIndex.find(boneName);
+        if (it != boneNameToIndex.end()) {
+            return boneMatrices[it->second];
+        }
+        return glm::mat4(1.0f);
+    }
+    
     // matrizes dos bones para enviar ao shader
     std::vector<glm::mat4> boneMatrices;
 

@@ -237,6 +237,7 @@ GLuint g_NumLoadedTextures = 0;
 // IDs das texturas para rebinding
 GLuint g_FloorTextureID = 0;
 GLuint g_BackgroundTextureID = 0;
+GLuint g_SwordTextureID = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 #include "gameLogic\inputs\input_debug.h"
@@ -422,11 +423,11 @@ int main(int argc, char* argv[])
     // ADICIONANDO MODELO DO YOSHIMITSU
     printf("DEBUG: Loading yoshimitsu model...\n");
     fflush(stdout);
-    // carrega modelo do yoshimitsu (rig model)
+    // carrega modelo do yoshimitsu (rig model) com a espada
     g_Character.loadModel("../../data/Yoshimitsu_animations/Tpose.fbx");
     printf("DEBUG: Yoshimitsu model loaded successfully.\n");
     fflush(stdout);
-
+    
     // CARREGANDO ANIMAÇÕES
     printf("DEBUG: loading character animations...\n");
     fflush(stdout);
@@ -437,6 +438,18 @@ int main(int argc, char* argv[])
     g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     // ===============================================================================
 
+    // ===============================================================================
+    // ADICIONANDO MODELO DA ESPADA
+    printf("DEBUG: loading sword model...\n");
+    fflush(stdout);
+    ObjModel swordmodel("../../data/sword/sword.obj");
+    ComputeNormals(&swordmodel);
+    BuildTrianglesAndAddToVirtualScene(&swordmodel);
+    printf("DEBUG: Sword model loaded successfully.\n");
+    fflush(stdout);
+
+    // adicionando textura da espada
+    g_SwordTextureID = LoadTextureImage("../../data/sword/katana_albedo.jpg");
 
     if ( argc > 1 )
     {
@@ -592,8 +605,9 @@ int main(int argc, char* argv[])
 
         #define PLANE 0
         #define BACKGROUND 1
+        #define SWORD 2
 
-       // plano do chão
+        // plano do chão
         // Rebind floor texture para garantir que está na unit 10
         //glActiveTexture(GL_TEXTURE0 + 10);
         glActiveTexture(GL_TEXTURE0);
@@ -650,12 +664,52 @@ int main(int argc, char* argv[])
         // =================================================================
 
         // =================================================================
-        // DEBUG NO TERMINAL E NA TELA
+        // DESENHO DO MODELO DA ESPADA
+        
+        // Bind sword texture to texture unit 2 for shader sampling.
+        glActiveTexture(GL_TEXTURE0 + 2);
+        glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
+
+        // matriz do bone da mão direita
+        glm::mat4 rightHandMatrix = g_Character.getBoneMatrix("mixamorig:RightHand");
+        
         /*
-        std::string debug = debugRenderer.buildString(inputSystem);
-        TextRendering_PrintString(window, debug, 0.02f, 0.9f);
-        printf("%s\n", debug.c_str());
+        // DEBUG - IMPRIME MATRIZ DO BONE DA MÃO DIREITA
+        glm::vec4 bonePos = rightHandMatrix[3];
+        printf("RightHand bone position = %f %f %f\n", bonePos.x, bonePos.y, bonePos.z);
         */
+
+        /*
+        // matriz do personagem (mesma usada para desenhar o Yoshimitsu)
+        charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
+                    * Matrix_Scale(0.01f, 0.01f, 0.01f)
+                    * Matrix_Rotate_Y(3.141592f / 2.0f);
+        */
+        
+        // espada segue o bone da mão direita
+        glm::mat4 swordModel = charModel * rightHandMatrix
+                            * Matrix_Translate(0.8f, 0.8f, -1.1f)
+                            * Matrix_Rotate_Y(3.141592f / 2.0f)
+                            * Matrix_Rotate_X(3.141592f / 2.0f)
+                            * Matrix_Rotate_Z(3.141592f)
+                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
+
+        glUseProgram(g_GpuProgramID);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
+        glUniform1i(g_object_id_uniform, SWORD);
+
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
+
+        // ============================================================================
+
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////DEBUG INPUT
         
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
@@ -836,6 +890,7 @@ void LoadShadersFromFiles()
     // ================================================================================
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0); // imagem do plano
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1); // imagem do background
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2); // imagem da espada
     // ================================================================================
     glUseProgram(0);
     printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
