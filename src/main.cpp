@@ -274,9 +274,9 @@ float g_CharacterX = 0.0f;
 float g_CharacterY = 0.2f;
 float g_CharacterZ = 0.0f;
 
-// limites de movimentacao
-const float PLANE_LIMIT_X = 4.0f;
-const float PLANE_LIMIT_Z = 2.0f;
+// limites de movimentacao 
+//const float PLANE_LIMIT_X = 4.0f;
+//const float PLANE_LIMIT_Z = 2.0f;
 
 // velocidade de movimento
 const float MOVE_SPEED = 0.02F;
@@ -535,8 +535,8 @@ int main(int argc, char* argv[])
         
 
         // limitacao do personagem para nao sair do plano
-        g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
-        g_CharacterZ = glm::clamp(g_CharacterZ, -PLANE_LIMIT_Z, PLANE_LIMIT_Z);
+        //g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
+        //g_CharacterZ = glm::clamp(g_CharacterZ, -PLANE_LIMIT_Z, PLANE_LIMIT_Z);
         // =============================================================================
 
         // =============================================================================
@@ -700,8 +700,13 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
         
+        /*
         model = Matrix_Translate(0.0f,-1.0f,0.0f)
               * Matrix_Scale(10.0f, 1.0f, 5.0f);
+        */
+        model = Matrix_Translate(g_CharacterX, -1.0f, g_CharacterZ)
+              * Matrix_Scale(40.0f, 1.0f, 40.0f);
+              
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
@@ -713,9 +718,18 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, g_BackgroundTextureID);
         
         // mesmo plano do chao (plane.obj), mas rotacionado 90 graus para ficar em pé
+        /*
         model = Matrix_Translate(0.0f, 3.0f, -5.0f)
               * Matrix_Rotate_X(3.141592 / 2.0f)
               * Matrix_Scale(10.0f, 1.0f, 4.0);
+        */
+
+        // CONTINUAR MEXENDO NESSA PARTE PARA AJUSTAR FUNDO E PARECER COM EFEITO DE INFINITO
+        // REMOVER LIMITADORES DE MOVIMENTAÇÃO DO PERSONAGEM PARA TESTAR O FUNDO
+        model = Matrix_Translate(g_CharacterX, 5.7f, /*g_CharacterZ*/ -10.0f)
+              * Matrix_Rotate_X(3.141592 / 2.0f)
+              * Matrix_Scale(18.0f, 1.0f, 7.0f);
+        
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BACKGROUND);
         DrawVirtualObject("the_plane");
@@ -855,8 +869,8 @@ GLuint LoadTextureImage(const char* filename)
     glGenSamplers(1, &sampler_id);
 
     // Veja slides 95-96 do documento Aula_20_Mapeamento_de_Texturas.pdf
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // Parâmetros de amostragem da textura.
     glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
