@@ -564,14 +564,17 @@ int main(int argc, char* argv[])
         // se apertou MEDIUM_ATTACK (tecla 'i') e não estamos em outra animação forçada,
         // se inicia a animação de ataque "sword_combo" do inicio e marca seu fim
         if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
-            printf("DEBUG: MEDIUM_ATTACK justPressed detected\n"); fflush(stdout);
             float dur = g_Character.getAnimationDuration("sword_combo");
-            printf("DEBUG: sword_combo duration = %.3f seconds\n", dur); fflush(stdout);
             if (dur <= 0.0f) dur = 1.0f; // fallback
+
+            // salva posição inicial do personagem
+            g_CharacterStartX = g_CharacterX;
+            g_CharacterStartZ = g_CharacterZ;
+
             g_CurrentAnimation = "sword_combo";
             g_AnimationTime = 0.0f;
             g_ForcedAnimationEnd = currentTime + dur;
-            printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
+            //printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
         }
 
         // Se uma animação forçada está em progresso, mantemos `g_CurrentAnimation`.
