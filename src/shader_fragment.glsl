@@ -76,17 +76,17 @@ void main()
     if ( object_id == PLANE )
     {
         // Coordenadas de textura do plano, obtidas do arquivo OBJ.
-        U = texcoords.x;
-        V = texcoords.y;
+        vec2 uv = position_world.xz * 0.15;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage2
-		Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+
+		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
+	        Kd0 = texture(TextureImage0, uv).rgb;
     }
     else if ( object_id == BACKGROUND )
     {
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd0 = texture(TextureImage1, vec2(U,V)).rgb;
+        // mexer no valor multiplicando para ajustar repetição do BACKGROUND
+        vec2 uv = vec2(position_world.x * 0.03, texcoords.y);
+        Kd0 = texture(TextureImage1, uv).rgb;
     }
     else if ( object_id == SWORD)
     {
