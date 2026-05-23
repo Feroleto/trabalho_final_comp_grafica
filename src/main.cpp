@@ -271,7 +271,7 @@ float g_ForcedAnimationEnd = 0.0f;
 
 // posicao
 float g_CharacterX = 0.0f;
-float g_CharacterY = -1.0f;
+float g_CharacterY = 0.2f;
 float g_CharacterZ = 0.0f;
 
 // limites de movimentacao
@@ -280,6 +280,15 @@ const float PLANE_LIMIT_Z = 2.0f;
 
 // velocidade de movimento
 const float MOVE_SPEED = 0.02F;
+
+// root motion
+static const std::string ROOT_MOTION_BONE = "mixamorig:Hips";
+static const float ROOT_MOTION_SCALE = 0.0135f;
+float g_CharacterStartX   = 0.0f;  // posição do personagem ao iniciar o golpe
+float g_CharacterStartZ   = 0.0f;
+
+float g_AnimationStartTime = 0.0f;
+float g_AnimationTotalDur = 0.0f;
 // ===============================================================================
 
 
@@ -504,7 +513,14 @@ int main(int argc, char* argv[])
         int direction = resolveDirection(inputSystem.mapping);
 
         if (currentTime < g_ForcedAnimationEnd) {
-            // Se uma animação forçada está em progresso, ignoramos os inputs de movimentação.
+            // root motion do ataque: usa apenas o deslocamento do Hips e não soma
+            // a translação interna da animação com a movimentação do personagem.
+            float prevAnimTime = glm::max(0.0f, g_AnimationTime - deltaTime);
+            glm::vec3 prevRootPos = g_Character.getBonePosition(g_CurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
+            glm::vec3 currRootPos = g_Character.getBonePosition(g_CurrentAnimation, ROOT_MOTION_BONE, g_AnimationTime);
+            float deltaZ = currRootPos.z - prevRootPos.z;
+            g_CharacterX = g_CharacterStartX + deltaZ * ROOT_MOTION_SCALE;
+            g_CharacterZ = g_CharacterStartZ;
         } else {
 
             if (direction == 4 || direction == 1 || direction == 7) // Esquerda
@@ -526,19 +542,25 @@ int main(int argc, char* argv[])
         // =============================================================================
         // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
 
-        // Se apertou STRONG_ATTACK (tecla 'O') e não estamos em outra animação forçada,
-        // inicia a animação de ataque "triple_slash_attack" do início e marca seu fim.
         if (inputSystem.mapping.justPressed(STRONG_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
-            printf("DEBUG: STRONG_ATTACK justPressed detected\n"); fflush(stdout);
+            // calcula a duração PRIMEIRO
             float dur = g_Character.getAnimationDuration("triple_slash_attack");
-            printf("DEBUG: triple_slash_attack duration = %.3f seconds\n", dur); fflush(stdout);
-            if (dur <= 0.0f) dur = 1.0f; // fallback
-            g_CurrentAnimation = "triple_slash_attack";
-            g_AnimationTime = 0.0f;
+            if (dur <= 0.0f) dur = 1.0f;
+
+            // salva posição inicial do personagem
+            g_CharacterStartX = g_CharacterX;
+            g_CharacterStartZ = g_CharacterZ;
+
+            // salva tempo de início e duração total
+            g_AnimationStartTime = currentTime;
+            g_AnimationTotalDur  = dur;
+
+            g_CurrentAnimation   = "triple_slash_attack";
+            g_AnimationTime      = 0.0f;
             g_ForcedAnimationEnd = currentTime + dur;
-            printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
         }
 
+        
         // se apertou MEDIUM_ATTACK (tecla 'i') e não estamos em outra animação forçada,
         // se inicia a animação de ataque "sword_combo" do inicio e marca seu fim
         if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
@@ -555,6 +577,8 @@ int main(int argc, char* argv[])
         // Se uma animação forçada está em progresso, mantemos `g_CurrentAnimation`.
         if (currentTime < g_ForcedAnimationEnd) {
             // mantém a animação atual (ação/ataque)
+            g_CharacterX = g_CharacterStartX;
+            g_CharacterZ = g_CharacterStartZ;
         } else {
             if (direction == 6)
                 g_CurrentAnimation = "walk_forward";
@@ -621,15 +645,6 @@ int main(int argc, char* argv[])
         glm::vec4 camera_up_vector   = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 
         // =========================================================================
-        
-        /*
-        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
-        */
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.

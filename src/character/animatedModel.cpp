@@ -241,9 +241,14 @@ void AnimatedModel::calcBoneTransforms(const std::string& animName,
             scale = glm::vec3(s.x, s.y, s.z);
         }
 
-        nodeTransform = glm::translate(glm::mat4(1.0f), position)
-                      * rotation
-                      * glm::scale(glm::mat4(1.0f), scale);
+        bool isRootBone = nodeName == "mixamorig:Hips";
+        if (isRootBone) {
+            nodeTransform = rotation * glm::scale(glm::mat4(1.0f), scale);
+        } else {
+            nodeTransform = glm::translate(glm::mat4(1.0f), position)
+                          * rotation
+                          * glm::scale(glm::mat4(1.0f), scale);
+        }
         break;
     }
 
@@ -283,6 +288,32 @@ GLuint AnimatedModel::loadTexture(const std::string& path) {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return texID;
+}
+
+glm::vec3 AnimatedModel::getBonePosition(const std::string& animName,
+                                           const std::string& boneName,
+                                           float animTime) const {
+    auto it = animations.find(animName);
+    if (it == animations.end()) return glm::vec3(0.0f);
+
+    aiAnimation* aiAnim = it->second.scene->mAnimations[0];
+    for (unsigned int i = 0; i < aiAnim->mNumChannels; i++) {
+        aiNodeAnim* channel = aiAnim->mChannels[i];
+        if (std::string(channel->mNodeName.C_Str()) != boneName) continue;
+
+        if (channel->mNumPositionKeys == 0) return glm::vec3(0.0f);
+        unsigned int idx = 0;
+        for (unsigned int j = 0; j + 1 < channel->mNumPositionKeys; j++) {
+            if (animTime < (float)channel->mPositionKeys[j + 1].mTime) {
+                idx = j;
+                break;
+            }
+        }
+        auto& p = channel->mPositionKeys[idx].mValue;
+        return glm::vec3(p.x, p.y, p.z);
+    }
+
+    return glm::vec3(0.0f);
 }
 
 void AnimatedModel::loadMaterialTextures() {

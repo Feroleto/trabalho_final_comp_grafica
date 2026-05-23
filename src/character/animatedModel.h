@@ -69,7 +69,17 @@ public:
         }
         return glm::mat4(1.0f);
     }
-    
+
+    const aiScene* getAnimationScene(const std::string& name) const {
+        auto it = animations.find(name);
+        if (it != animations.end()) return it->second.scene;
+        return nullptr;
+    }
+
+    glm::vec3 getBonePosition(const std::string& animName,
+                              const std::string& boneName,
+                              float animTime) const;
+
     // matrizes dos bones para enviar ao shader
     std::vector<glm::mat4> boneMatrices;
 
