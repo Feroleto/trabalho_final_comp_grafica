@@ -22,6 +22,7 @@ uniform mat4 projection;
 #define PLANE  0
 #define BACKGROUND 1
 #define SWORD 2
+#define PROJECTILE 3
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -32,6 +33,7 @@ uniform vec4 bbox_max;
 uniform sampler2D TextureImage0; // PLANE
 uniform sampler2D TextureImage1; // BACKGROUND
 uniform sampler2D TextureImage2; // SWORD
+uniform sampler2D TextureImage3; // PROJECTILE
 
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
@@ -94,6 +96,12 @@ void main()
         V = texcoords.y;
         Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
     }
+    else if ( object_id == PROJECTILE)
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+    }
 
     
     // Equação de Iluminação
@@ -121,5 +129,5 @@ void main()
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
     color.rgb = pow(color.rgb, vec3(1.0/2.2));
-} 
+}
 

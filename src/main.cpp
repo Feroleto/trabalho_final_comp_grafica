@@ -238,6 +238,7 @@ GLuint g_NumLoadedTextures = 0;
 GLuint g_FloorTextureID = 0;
 GLuint g_BackgroundTextureID = 0;
 GLuint g_SwordTextureID = 0;
+GLuint g_ProjectileTextureID = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 #include "gameLogic\inputs\input_debug.h"
@@ -254,6 +255,10 @@ GLuint g_SwordTextureID = 0;
 // ==============================================================================
 // include do modelo do personagem
 #include "character\animatedModel.h"
+
+// includes para golpe com curvas de bezier (slash attacks)
+#include "gameLogic\attacks\attacks.h"
+#include "gameLogic\entities\Object.h"
 // ==============================================================================
 
 // ==============================================================================
@@ -289,6 +294,15 @@ float g_CharacterStartZ   = 0.0f;
 
 float g_AnimationStartTime = 0.0f;
 float g_AnimationTotalDur = 0.0f;
+
+// projeteis do STRONG_ATTACK
+Projectile g_Proj1;
+Projectile g_Proj2;
+Attack g_SlashAttack;
+
+// objeto do personagem para o sistema de colisão
+Object g_PlayerObject;
+Object g_TargetObject;
 // ===============================================================================
 
 
@@ -422,6 +436,7 @@ int main(int argc, char* argv[])
     printf("DEBUG: Texture for background loaded successfully.\n");
     fflush(stdout);
 
+    // carregando objeto do plano
     printf("DEBUG: Loading plane model...\n");
     fflush(stdout);
     ObjModel planemodel("../../data/ambient/plane.obj");
@@ -438,7 +453,15 @@ int main(int argc, char* argv[])
     g_Character.loadModel("../../data/Yoshimitsu_animations/Tpose.fbx");
     printf("DEBUG: Yoshimitsu model loaded successfully.\n");
     fflush(stdout);
-    
+
+    // incicializando o objeto do personagem
+    g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+    g_PlayerObject.transform.dirty = true;
+
+    // alvo ficticio na frente do personagem para testes
+    g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ};
+    g_TargetObject.transform.dirty = true;
+
     // CARREGANDO ANIMAÇÕES
     printf("DEBUG: loading character animations...\n");
     fflush(stdout);
@@ -463,6 +486,14 @@ int main(int argc, char* argv[])
 
     // adicionando textura da espada
     g_SwordTextureID = LoadTextureImage("../../data/sword/katana_albedo.jpg");
+
+    // ===============================================================================
+    // ADICIONANDO TEXTURA DO PROJÉTIL - usa memso modelo do plano
+    g_ProjectileTextureID = LoadTextureImage("../../data/projectile_texture.jpg");
+    printf("DEBUG: Texture for projectile loaded successfully.\n");
+    fflush(stdout);
+
+    // ==============================================================================
 
     if ( argc > 1 )
     {
@@ -558,6 +589,18 @@ int main(int argc, char* argv[])
             g_CurrentAnimation   = "triple_slash_attack";
             g_AnimationTime      = 0.0f;
             g_ForcedAnimationEnd = currentTime + dur;
+
+            // ADICIONANDO PROJETEIS
+            // atualiza posição do objeto do personagem
+            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+            g_PlayerObject.transform.dirty = true;
+
+            // alvo ficticio em frente ao personagem
+            g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ};
+            g_TargetObject.transform.dirty = true;
+
+            // disparo dos projéteis
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
         }
 
         
@@ -597,6 +640,9 @@ int main(int argc, char* argv[])
 
         // atualizacao dos bones
         g_Character.update(g_AnimationTime, g_CurrentAnimation);
+        
+        // atualização dos projeteis
+        updateBezier(&g_SlashAttack, &g_Proj1, &g_Proj2);
         // =============================================================================
 
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
@@ -693,6 +739,7 @@ int main(int argc, char* argv[])
         #define PLANE 0
         #define BACKGROUND 1
         #define SWORD 2
+        #define PROJECTILE 3
 
         // plano do chão
         // Rebind floor texture para garantir que está na unit 10
@@ -774,19 +821,6 @@ int main(int argc, char* argv[])
         // matriz do bone da mão direita
         glm::mat4 rightHandMatrix = g_Character.getBoneMatrix("mixamorig:RightHand");
         
-        /*
-        // DEBUG - IMPRIME MATRIZ DO BONE DA MÃO DIREITA
-        glm::vec4 bonePos = rightHandMatrix[3];
-        printf("RightHand bone position = %f %f %f\n", bonePos.x, bonePos.y, bonePos.z);
-        */
-
-        /*
-        // matriz do personagem (mesma usada para desenhar o Yoshimitsu)
-        charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
-                    * Matrix_Scale(0.01f, 0.01f, 0.01f)
-                    * Matrix_Rotate_Y(3.141592f / 2.0f);
-        */
-        
         // espada segue o bone da mão direita
         glm::mat4 swordModel = charModel * rightHandMatrix
                             * Matrix_Translate(0.8f, 0.8f, -1.1f)
@@ -808,6 +842,45 @@ int main(int argc, char* argv[])
         DrawVirtualObject("ItoWrapEnd_low");
         DrawVirtualObject("Pommel_low");
         DrawVirtualObject("Grip_low");
+
+        /*
+        // renderização dos projéteis
+        glActiveTexture(GL_TEXTURE0 + 3);
+        glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+        */
+        // Proj1
+        if (g_Proj1.isActive) {
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+
+            glm::vec3 pos = g_Proj1.hitbox.getGlobalPosition();
+            glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
+                                * Matrix_Rotate_X(3.141592f / 2.0f)
+                                * Matrix_Scale(0.5f, 0.5f, 0.5f);
+                            
+            glUseProgram(g_GpuProgramID);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
+            glUniform1i(g_object_id_uniform, PROJECTILE);
+            DrawVirtualObject("the_plane");
+        }
+
+        /*
+        // Proj2
+        if (g_Proj2.isActive) {
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+
+            glm::vec3 pos = g_Proj2.hitbox.getGlobalPosition();
+            glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
+                                * Matrix_Rotate_X(3.141592f / 2.0f)
+                                * Matrix_Scale(0.5f, 0.5f, 0.5f);
+                            
+            glUseProgram(g_GpuProgramID);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
+            glUniform1i(g_object_id_uniform, PROJECTILE);
+            DrawVirtualObject("the_plane");
+        }
+        */
 
         // ============================================================================
 
@@ -992,6 +1065,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0); // imagem do plano
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1); // imagem do background
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2); // imagem da espada
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3); // imagem do projetil
     // ================================================================================
     glUseProgram(0);
     printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
