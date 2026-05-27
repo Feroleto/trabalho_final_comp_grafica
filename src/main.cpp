@@ -425,8 +425,8 @@ int main(int argc, char* argv[])
     // CARREGANDO SHADERS DO MODELO ANIMADO
     printf("DEBUG: Loading animated shaders...\n");
     fflush(stdout);
-    GLuint anim_vert = LoadShader_Vertex("../../src/shader_vertex_animated.glsl");
-    GLuint anim_frag = LoadShader_Fragment("../../src/shader_fragment_animated.glsl");
+    GLuint anim_vert = LoadShader_Vertex("../../src/shaders/shader_vertex_animated.glsl");
+    GLuint anim_frag = LoadShader_Fragment("../../src/shaders/shader_fragment_animated.glsl");
     g_AnimatedProgramID = CreateGpuProgram(anim_vert, anim_frag);
 
     g_anim_model_uniform = glGetUniformLocation(g_AnimatedProgramID, "model");
@@ -1138,10 +1138,10 @@ void LoadShadersFromFiles()
     //
     printf("DEBUG: LoadShader_Vertex...\n");
     fflush(stdout);
-    GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
+    GLuint vertex_shader_id = LoadShader_Vertex("../../src/shaders/shader_vertex.glsl");
     printf("DEBUG: LoadShader_Fragment...\n");
     fflush(stdout);
-    GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
+    GLuint fragment_shader_id = LoadShader_Fragment("../../src/shaders/shader_fragment.glsl");
     printf("DEBUG: CreateGpuProgram...\n");
     fflush(stdout);
 
@@ -1508,76 +1508,6 @@ GLuint LoadShader_Fragment(const char* filename)
     // Retorna o ID gerado acima
     return fragment_shader_id;
 }
-
-/*
-void LoadShader(const char* filename, GLuint shader_id)
-{
-    // Lemos o arquivo de texto indicado pela variável "filename"
-    // e colocamos seu conteúdo em memória, apontado pela variável
-    // "shader_string".
-    std::ifstream file;
-    try {
-        file.exceptions(std::ifstream::failbit);
-        file.open(filename);
-    } catch ( std::exception& e ) {
-        fprintf(stderr, "ERROR: Cannot open file \"%s\".\n", filename);
-        std::exit(EXIT_FAILURE);
-    }
-    std::stringstream shader;
-    shader << file.rdbuf();
-    std::string str = shader.str();
-    const GLchar* shader_string = str.c_str();
-    const GLint   shader_string_length = static_cast<GLint>( str.length() );
-
-    // Define o código do shader GLSL, contido na string "shader_string"
-    glShaderSource(shader_id, 1, &shader_string, &shader_string_length);
-
-    // Compila o código do shader GLSL (em tempo de execução)
-    glCompileShader(shader_id);
-
-    // Verificamos se ocorreu algum erro ou "warning" durante a compilação
-    GLint compiled_ok;
-    glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compiled_ok);
-
-    GLint log_length = 0;
-    glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &log_length);
-
-    // Alocamos memória para guardar o log de compilação.
-    // A chamada "new" em C++ é equivalente ao "malloc()" do C.
-    GLchar* log = new GLchar[log_length];
-    glGetShaderInfoLog(shader_id, log_length, &log_length, log);
-
-    // Imprime no terminal qualquer erro ou "warning" de compilação
-    if ( log_length != 0 )
-    {
-        std::string  output;
-
-        if ( !compiled_ok )
-        {
-            output += "ERROR: OpenGL compilation of \"";
-            output += filename;
-            output += "\" failed.\n";
-            output += "== Start of compilation log\n";
-            output += log;
-            output += "== End of compilation log\n";
-        }
-        else
-        {
-            output += "WARNING: OpenGL compilation of \"";
-            output += filename;
-            output += "\".\n";
-            output += "== Start of compilation log\n";
-            output += log;
-            output += "== End of compilation log\n";
-        }
-
-        fprintf(stderr, "%s", output.c_str());
-    }
-
-    // A chamada "delete" em C++ é equivalente ao "free()" do C
-    delete [] log;
-}
-*/
 
 // Função auxilar, utilizada pelas duas funções acima. Carrega código de GPU de
 // um arquivo GLSL e faz sua compilação.
