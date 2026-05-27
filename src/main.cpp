@@ -583,7 +583,6 @@ int main(int argc, char* argv[])
                 g_CharacterZ -= MOVE_SPEED;
         }
         
-
         // limitacao do personagem para nao sair do plano
         //g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
         //g_CharacterZ = glm::clamp(g_CharacterZ, -PLANE_LIMIT_Z, PLANE_LIMIT_Z);
@@ -592,8 +591,9 @@ int main(int argc, char* argv[])
         // =============================================================================
         // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
 
+        // animação da tecla "O"
         if (inputSystem.mapping.justPressed(STRONG_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
-            // calcula a duração PRIMEIRO
+            // calcula a duração da animação
             float dur = g_Character.getAnimationDuration("triple_slash_attack");
             if (dur <= 0.0f) dur = 1.0f;
 
@@ -613,38 +613,10 @@ int main(int argc, char* argv[])
             g_Proj1Spawned = false;
             g_Proj2Spawned = false;
             g_Proj3Spawned = false;
-
-            // ADICIONANDO PROJETEIS
-            // atualiza posição do objeto do personagem
-            /*
-            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
-            g_PlayerObject.transform.dirty = true;
-            */
-
-            // alvo ficticio em frente ao personagem
-            /*
-            g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ};
-            g_TargetObject.transform.dirty = true;
-            */
-
-            /*
-            // testando projéteis saindo da espada
-            g_PlayerObject.transform.position = g_SwordWorldPos;
-            g_PlayerObject.transform.dirty = true;
-
-            // alvo ficticio em frente a espada
-            g_TargetObject.transform.position = {g_SwordWorldPos.x + 3.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
-            g_TargetObject.transform.dirty = true;
-            */
-            
-
-            // disparo dos projéteis
-            //spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
         }
 
         
-        // se apertou MEDIUM_ATTACK (tecla 'i') e não estamos em outra animação forçada,
-        // se inicia a animação de ataque "sword_combo" do inicio e marca seu fim
+        // animação da tecla "I"
         if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
             float dur = g_Character.getAnimationDuration("sword_combo");
             if (dur <= 0.0f) dur = 1.0f; // fallback
@@ -659,7 +631,7 @@ int main(int argc, char* argv[])
             //printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
         }
 
-        // Se uma animação forçada está em progresso, mantemos `g_CurrentAnimation`.
+        // se uma animação forçada está em progresso, deve manter "g_CurrentAnimation"
         if (currentTime < g_ForcedAnimationEnd) {
             // mantém a animação atual (ação/ataque)
             g_CharacterX = g_CharacterStartX;
@@ -835,15 +807,9 @@ int main(int argc, char* argv[])
         #define PROJECTILE 3
 
         // plano do chão
-        // Rebind floor texture para garantir que está na unit 10
-        //glActiveTexture(GL_TEXTURE0 + 10);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
         
-        /*
-        model = Matrix_Translate(0.0f,-1.0f,0.0f)
-              * Matrix_Scale(10.0f, 1.0f, 5.0f);
-        */
         model = Matrix_Translate(g_CharacterX, -1.0f, g_CharacterZ)
               * Matrix_Scale(40.0f, 1.0f, 40.0f);
               
@@ -851,19 +817,12 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
 
+        // ---------------------------
         // plano do fundo
-        // Rebind background texture para garantir que está na unit 11
-        //glActiveTexture(GL_TEXTURE0 + 11);
         glActiveTexture(GL_TEXTURE0 + 1);
         glBindTexture(GL_TEXTURE_2D, g_BackgroundTextureID);
         
         // mesmo plano do chao (plane.obj), mas rotacionado 90 graus para ficar em pé
-        /*
-        model = Matrix_Translate(0.0f, 3.0f, -5.0f)
-              * Matrix_Rotate_X(3.141592 / 2.0f)
-              * Matrix_Scale(10.0f, 1.0f, 4.0);
-        */
-
         model = Matrix_Translate(g_CharacterX, 5.7f, /*g_CharacterZ*/ -10.0f)
               * Matrix_Rotate_X(3.141592 / 2.0f)
               * Matrix_Scale(18.0f, 1.0f, 7.0f);
@@ -905,7 +864,7 @@ int main(int argc, char* argv[])
         // =================================================================
         // DESENHO DO MODELO DA ESPADA
         
-        // Bind sword texture to texture unit 2 for shader sampling.
+        // bind da textura da espada
         glActiveTexture(GL_TEXTURE0 + 2);
         glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
 
@@ -959,6 +918,7 @@ int main(int argc, char* argv[])
             DrawVirtualObject("Circle");
         }
 
+        /*
         // Proj2
         if (g_Proj2.isActive) {
             printf("DEBUG: Rendering Proj2 at position (%.2f, %.2f, %.2f)\n", g_Proj2.hitbox.getGlobalPosition().x, g_Proj2.hitbox.getGlobalPosition().y, g_Proj2.hitbox.getGlobalPosition().z);
@@ -992,6 +952,7 @@ int main(int argc, char* argv[])
             glUniform1i(g_object_id_uniform, PROJECTILE);
             DrawVirtualObject("Circle");
         }
+        */
 
         // ============================================================================
 
