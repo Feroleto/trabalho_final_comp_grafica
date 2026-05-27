@@ -8,7 +8,7 @@ static float clampFloat(float value, float minValue, float maxValue) {
 
 void spawnBezierProjectiles(Object* attacker, Object* target, Projectile* proj1, Projectile* proj2) {
     proj1->isActive = true;
-    proj2->isActive = true;
+    //proj2->isActive = true;
     proj1->currentFrame = 0;
     proj2->currentFrame = 0;
 
