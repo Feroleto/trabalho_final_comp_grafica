@@ -298,11 +298,21 @@ float g_AnimationTotalDur = 0.0f;
 // projeteis do STRONG_ATTACK
 Projectile g_Proj1;
 Projectile g_Proj2;
+Projectile g_Proj3;
 Attack g_SlashAttack;
+
+// controle de spawn dos projéteis
+bool g_Proj1Spawned = false;
+bool g_Proj2Spawned = false;
+bool g_Proj3Spawned = false;
 
 // objeto do personagem para o sistema de colisão
 Object g_PlayerObject;
 Object g_TargetObject;
+
+// posição global da espada para guiar os projeteis
+glm::vec3 g_SwordWorldPos = glm::vec3(0.0f);
+
 // ===============================================================================
 
 
@@ -488,8 +498,17 @@ int main(int argc, char* argv[])
     g_SwordTextureID = LoadTextureImage("../../data/sword/katana_albedo.jpg");
 
     // ===============================================================================
-    // ADICIONANDO TEXTURA DO PROJÉTIL - usa memso modelo do plano
-    g_ProjectileTextureID = LoadTextureImage("../../data/projectile_texture.jpg");
+    // ADICIONANDO MODELO DO PROJÉTIL
+    printf("DEBUG: loading projectile model...\n");
+    fflush(stdout);
+    ObjModel projectilemodel("../../data/slash_attack/source/slash.obj");
+    ComputeNormals(&projectilemodel);
+    BuildTrianglesAndAddToVirtualScene(&projectilemodel);
+    printf("DEBUG: Projectile model loaded successfully.\n");
+    fflush(stdout);
+
+    // adicionando textura do projétil
+    g_ProjectileTextureID = LoadTextureImage("../../data/slash_attack/textures/Claw_slash_2.png");
     printf("DEBUG: Texture for projectile loaded successfully.\n");
     fflush(stdout);
 
@@ -590,17 +609,37 @@ int main(int argc, char* argv[])
             g_AnimationTime      = 0.0f;
             g_ForcedAnimationEnd = currentTime + dur;
 
+            // reset de spawn dos projeteis para nova animação
+            g_Proj1Spawned = false;
+            g_Proj2Spawned = false;
+            g_Proj3Spawned = false;
+
             // ADICIONANDO PROJETEIS
             // atualiza posição do objeto do personagem
+            /*
             g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
             g_PlayerObject.transform.dirty = true;
+            */
 
             // alvo ficticio em frente ao personagem
+            /*
             g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ};
             g_TargetObject.transform.dirty = true;
+            */
+
+            /*
+            // testando projéteis saindo da espada
+            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.dirty = true;
+
+            // alvo ficticio em frente a espada
+            g_TargetObject.transform.position = {g_SwordWorldPos.x + 3.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.dirty = true;
+            */
+            
 
             // disparo dos projéteis
-            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            //spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
         }
 
         
@@ -643,6 +682,60 @@ int main(int argc, char* argv[])
         
         // atualização dos projeteis
         updateBezier(&g_SlashAttack, &g_Proj1, &g_Proj2);
+        updateBezier(&g_SlashAttack, &g_Proj2, &g_Proj2);
+        updateBezier(&g_SlashAttack, &g_Proj3, &g_Proj2);
+        
+        // ================================================================
+        // AJUSTANDO SPAWN DOS PROJETEIS
+
+        // Proj1
+        float delay1Seconds = 1.0f;
+
+        if (!g_Proj1Spawned && 
+            g_CurrentAnimation == "triple_slash_attack" &&
+            currentTime >= g_AnimationStartTime + delay1Seconds) {
+            
+            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.dirty = true;
+            g_TargetObject.transform.position = {g_SwordWorldPos.x + 5.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.dirty = true;
+            
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            g_Proj1Spawned = true;
+        }
+
+        // Proj2
+        float delay2Seconds = 2.0f;
+
+        if (!g_Proj2Spawned && 
+            g_CurrentAnimation == "triple_slash_attack" &&
+            currentTime >= g_AnimationStartTime + delay2Seconds) {
+            
+            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.dirty = true;
+            g_TargetObject.transform.position = {g_SwordWorldPos.x + 5.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.dirty = true;
+            
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            g_Proj2Spawned = true;
+        }
+
+        // Proj3
+        float delay3Seconds = 3.0f;
+
+        if (!g_Proj3Spawned && 
+            g_CurrentAnimation == "triple_slash_attack" &&
+            currentTime >= g_AnimationStartTime + delay3Seconds) {
+            
+            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.dirty = true;
+            g_TargetObject.transform.position = {g_SwordWorldPos.x + 5.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.dirty = true;
+            
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            g_Proj3Spawned = true;
+        }
+
         // =============================================================================
 
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
@@ -771,8 +864,6 @@ int main(int argc, char* argv[])
               * Matrix_Scale(10.0f, 1.0f, 4.0);
         */
 
-        // CONTINUAR MEXENDO NESSA PARTE PARA AJUSTAR FUNDO E PARECER COM EFEITO DE INFINITO
-        // REMOVER LIMITADORES DE MOVIMENTAÇÃO DO PERSONAGEM PARA TESTAR O FUNDO
         model = Matrix_Translate(g_CharacterX, 5.7f, /*g_CharacterZ*/ -10.0f)
               * Matrix_Rotate_X(3.141592 / 2.0f)
               * Matrix_Scale(18.0f, 1.0f, 7.0f);
@@ -829,6 +920,8 @@ int main(int argc, char* argv[])
                             * Matrix_Rotate_Z(3.141592f)
                             * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
+        g_SwordWorldPos = glm::vec3(swordModel[3][0], swordModel[3][1], swordModel[3][2]);
+        
         glUseProgram(g_GpuProgramID);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
         glUniform1i(g_object_id_uniform, SWORD);
@@ -843,30 +936,32 @@ int main(int argc, char* argv[])
         DrawVirtualObject("Pommel_low");
         DrawVirtualObject("Grip_low");
 
-        /*
+        // ========================================================================
+
         // renderização dos projéteis
-        glActiveTexture(GL_TEXTURE0 + 3);
-        glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
-        */
+    
         // Proj1
         if (g_Proj1.isActive) {
+            //printf("DEBUG: Rendering Proj1 at position (%.2f, %.2f, %.2f)\n", g_Proj1.hitbox.getGlobalPosition().x, g_Proj1.hitbox.getGlobalPosition().y, g_Proj1.hitbox.getGlobalPosition().z);
+            printf("DEBUG: Proj1 is active\n");
             glActiveTexture(GL_TEXTURE0 + 3);
             glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
             glm::vec3 pos = g_Proj1.hitbox.getGlobalPosition();
             glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
-                                * Matrix_Rotate_X(3.141592f / 2.0f)
+                                * Matrix_Rotate_Y(-3.141592f / 2.0f)
+                                //* Matrix_Rotate_X(3.141592f / 2.0f)
                                 * Matrix_Scale(0.5f, 0.5f, 0.5f);
                             
             glUseProgram(g_GpuProgramID);
             glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
             glUniform1i(g_object_id_uniform, PROJECTILE);
-            DrawVirtualObject("the_plane");
+            DrawVirtualObject("Circle");
         }
 
-        /*
         // Proj2
         if (g_Proj2.isActive) {
+            printf("DEBUG: Rendering Proj2 at position (%.2f, %.2f, %.2f)\n", g_Proj2.hitbox.getGlobalPosition().x, g_Proj2.hitbox.getGlobalPosition().y, g_Proj2.hitbox.getGlobalPosition().z);
             glActiveTexture(GL_TEXTURE0 + 3);
             glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
@@ -878,9 +973,25 @@ int main(int argc, char* argv[])
             glUseProgram(g_GpuProgramID);
             glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
             glUniform1i(g_object_id_uniform, PROJECTILE);
-            DrawVirtualObject("the_plane");
+            DrawVirtualObject("Circle");
         }
-        */
+
+        // Proj3
+        if (g_Proj3.isActive) {
+            printf("DEBUG: Rendering Proj3 at position (%.2f, %.2f, %.2f)\n", g_Proj3.hitbox.getGlobalPosition().x, g_Proj3.hitbox.getGlobalPosition().y, g_Proj3.hitbox.getGlobalPosition().z);
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+
+            glm::vec3 pos = g_Proj3.hitbox.getGlobalPosition();
+            glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
+                                * Matrix_Rotate_X(3.141592f / 2.0f)
+                                * Matrix_Scale(0.5f, 0.5f, 0.5f);
+                            
+            glUseProgram(g_GpuProgramID);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
+            glUniform1i(g_object_id_uniform, PROJECTILE);
+            DrawVirtualObject("Circle");
+        }
 
         // ============================================================================
 
