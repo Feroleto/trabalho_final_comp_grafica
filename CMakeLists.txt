@@ -18,6 +18,8 @@ set(SOURCES
   src/gameLogic/inputs/platform_input.cpp
   src/gameLogic/inputs/input_mapping.cpp
 
+  src/gameLogic/attacks/attacks.cpp
+
   src/character/animatedModel.cpp
 )
 
