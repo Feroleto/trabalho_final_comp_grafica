@@ -477,13 +477,16 @@ int main(int argc, char* argv[])
     printf("DEBUG: Yoshimitsu model loaded successfully.\n");
     fflush(stdout);
 
+    /*
     // incicializando o objeto do personagem
     g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
     g_PlayerObject.transform.dirty = true;
 
     // alvo ficticio na frente do personagem para testes
-    g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ};
+    //g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ + 0.5f};
+    g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
     g_TargetObject.transform.dirty = true;
+    */
 
     // CARREGANDO ANIMAÇÕES
     printf("DEBUG: loading character animations...\n");
@@ -660,16 +663,30 @@ int main(int argc, char* argv[])
             g_CharacterX = g_CharacterStartX;
             g_CharacterZ = g_CharacterStartZ;
         } else {
-            if (direction == 6)
-                g_CharacterCurrentAnimation = "walk_forward";
-            else if (direction == 4)
-                g_CharacterCurrentAnimation = "walk_backwards";
-            else if (direction == 2)
-                g_CharacterCurrentAnimation = "strafe_right";
-            else if (direction == 8)
-                g_CharacterCurrentAnimation = "strafe_left";
-            else
-                g_CharacterCurrentAnimation = "idle";
+            if (g_CharacterX < g_OpponentX){
+                if (direction == 6)
+                    g_CharacterCurrentAnimation = "walk_forward";
+                else if (direction == 4)
+                    g_CharacterCurrentAnimation = "walk_backwards";
+                else if (direction == 2)
+                    g_CharacterCurrentAnimation = "strafe_right";
+                else if (direction == 8)
+                    g_CharacterCurrentAnimation = "strafe_left";
+                else
+                    g_CharacterCurrentAnimation = "idle";
+            }
+            else {
+                if (direction == 6)
+                    g_CharacterCurrentAnimation = "walk_backwards";
+                else if (direction == 4)
+                    g_CharacterCurrentAnimation = "walk_forward";
+                else if (direction == 2)
+                    g_CharacterCurrentAnimation = "strafe_left";
+                else if (direction == 8)
+                    g_CharacterCurrentAnimation = "strafe_right";
+                else
+                    g_CharacterCurrentAnimation = "idle";
+            }
         }
 
         // atualizacao dos bones
@@ -693,7 +710,8 @@ int main(int argc, char* argv[])
             
             g_PlayerObject.transform.position = g_CharacterSwordWorldPos;
             g_PlayerObject.transform.dirty = true;
-            g_TargetObject.transform.position = {g_CharacterSwordWorldPos.x + 5.0f, g_CharacterSwordWorldPos.y, g_CharacterSwordWorldPos.z};
+
+            g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
             g_TargetObject.transform.dirty = true;
             
             spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
@@ -709,7 +727,8 @@ int main(int argc, char* argv[])
             
             g_PlayerObject.transform.position = g_CharacterSwordWorldPos;
             g_PlayerObject.transform.dirty = true;
-            g_TargetObject.transform.position = {g_CharacterSwordWorldPos.x + 5.0f, g_CharacterSwordWorldPos.y, g_CharacterSwordWorldPos.z};
+
+            g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
             g_TargetObject.transform.dirty = true;
             
             spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
@@ -725,7 +744,8 @@ int main(int argc, char* argv[])
             
             g_PlayerObject.transform.position = g_CharacterSwordWorldPos;
             g_PlayerObject.transform.dirty = true;
-            g_TargetObject.transform.position = {g_CharacterSwordWorldPos.x + 5.0f, g_CharacterSwordWorldPos.y, g_CharacterSwordWorldPos.z};
+            
+            g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
             g_TargetObject.transform.dirty = true;
             
             spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
@@ -766,19 +786,21 @@ int main(int argc, char* argv[])
         // =========================================================================
         // ADICIONANDO NOVAS INFORMAÇÕES PARA A CÂMERA
         
-        // camera centralizada no personagem
-        glm::vec4 character_center = glm::vec4(g_CharacterX, 0.5f, g_CharacterZ, 1.0f);
+        // camera centralizada entre os dois personagens
+        float cameraPosX = (g_CharacterX + g_OpponentX) / 2.0f;
+        glm::vec4 camera_center = glm::vec4(cameraPosX, 0.5f, g_CharacterZ, 1.0f);
 
         // posição da câmera offset do personagem
         glm::vec4 camera_position_c = glm::vec4(
-            g_CharacterX + x,   // segue o personagem no X
+            cameraPosX + x,
             y,                  // altura fixa
             g_CharacterZ + z,   // segue o personagem no Z
             1.0f
         );
 
         // Câmera sempre olha para o personagem
-        glm::vec4 camera_lookat_l    = character_center;
+        //glm::vec4 camera_lookat_l    = character_center;
+        glm::vec4 camera_lookat_l    = camera_center;
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c;
         glm::vec4 camera_up_vector   = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -864,18 +886,16 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        /*
         float directionToOpponent = atan2(
             g_OpponentX - g_CharacterX, 
             g_OpponentZ - g_CharacterZ
         );
-        */
 
         // envia matriz de modelo
         glm::mat4 charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
                             * Matrix_Scale(0.01f, 0.01f, 0.01f)
-                            * Matrix_Rotate_Y(3.141592 / 2.0f);
-                            //* Matrix_Rotate_Y(directionToOpponent);
+                            //* Matrix_Rotate_Y(3.141592 / 2.0f);
+                            * Matrix_Rotate_Y(directionToOpponent);
         glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(charModel));
         
         // Envia as matrizes dos bones
@@ -1004,10 +1024,20 @@ int main(int argc, char* argv[])
             glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
             glm::vec3 pos = g_Proj1.hitbox.getGlobalPosition();
-            glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
-                                * Matrix_Rotate_Y(-3.141592f / 2.0f)
-                                //* Matrix_Rotate_X(3.141592f / 2.0f)
-                                * Matrix_Scale(0.5f, 0.5f, 0.5f);
+
+            glm::mat4 projModel;
+
+            if (g_CharacterX < g_OpponentX) {
+                projModel = Matrix_Translate(pos.x, pos.y, pos.z)
+                            * Matrix_Rotate_Y(-3.141592f / 2.0f)
+                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
+            }
+            else {
+                projModel = Matrix_Translate(pos.x, pos.y, pos.z)
+                            * Matrix_Rotate_X(3.141592f)
+                            * Matrix_Rotate_Y(3.141592f / 2.0f)
+                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
+            }
                             
             glUseProgram(g_GpuProgramID);
             glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
