@@ -264,12 +264,11 @@ GLuint g_ProjectileTextureID = 0;
 // ==============================================================================
 // VARIAVEIS PARA O PERSONAGEM
 AnimatedModel g_Character;
-std::string g_CurrentAnimation = "idle";
-float g_AnimationTime = 0.0f;
-float g_LastFrameTime = 0.0f;
+std::string g_CharacterCurrentAnimation = "idle";
+float g_CharacterAnimationTime = 0.0f;
+float g_CharacterLastFrameTime = 0.0f;
 // tempo (em segundos) até quando uma animação forçada (ataque) deve ser reproduzida
-float g_ForcedAnimationEnd = 0.0f;
-
+float g_CharacterForcedAnimationEnd = 0.0f;
 
 // ===============================================================================
 // VARIAVEIS PARA MOVIMENTACAO DO PERSONAGEM
@@ -292,9 +291,20 @@ static const float ROOT_MOTION_SCALE = 0.0135f;
 float g_CharacterStartX   = 0.0f;  // posição do personagem ao iniciar o golpe
 float g_CharacterStartZ   = 0.0f;
 
-float g_AnimationStartTime = 0.0f;
-float g_AnimationTotalDur = 0.0f;
+float g_CharacterAnimationStartTime = 0.0f;
+float g_CharacterAnimationTotalDur = 0.0f;
 
+// ==============================================================================
+// VARIÁVEIS PARA O OPONENTE
+// VARIÁVEIS PARA O OPONENTE
+AnimatedModel g_Opponent;
+std::string g_OpponentCurrentAnimation = "idle";
+float g_OpponentX = 3.0f;
+float g_OpponentY = 0.2f;
+float g_OpponentZ = 0.0f;
+
+// ===============================================================================
+// VARIÁVEIS PARA PROJÉTEIS
 // projeteis do STRONG_ATTACK
 Projectile g_Proj1;
 Projectile g_Proj2;
@@ -310,8 +320,11 @@ bool g_Proj3Spawned = false;
 Object g_PlayerObject;
 Object g_TargetObject;
 
-// posição global da espada para guiar os projeteis
-glm::vec3 g_SwordWorldPos = glm::vec3(0.0f);
+// posição global da espada do personagem para guiar os projeteis
+glm::vec3 g_CharacterSwordWorldPos = glm::vec3(0.0f);
+
+// posição global da espada do oponente para guiar os projeteis
+glm::vec3 g_OpponentSwordWorldPos = glm::vec3(0.0f);
 
 // ===============================================================================
 
@@ -482,8 +495,18 @@ int main(int argc, char* argv[])
     g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     g_Character.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
     g_Character.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
+    
     // ===============================================================================
-
+    // carregando animações do oponente (mesmo modelo)
+    g_Opponent.loadModel("../../data/Yoshimitsu_animations/Tpose.fbx");
+    g_Opponent.loadAnimation("idle", "../../data/Yoshimitsu_animations/Idle.fbx");
+    g_Opponent.loadAnimation("walk_forward", "../../data/Yoshimitsu_animations/Walk_forward.fbx");
+    g_Opponent.loadAnimation("walk_backwards", "../../data/Yoshimitsu_animations/Walk_backwards.fbx");
+    g_Opponent.loadAnimation("strafe_left", "../../data/Yoshimitsu_animations/Strafe_left.fbx");
+    g_Opponent.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
+    g_Opponent.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
+    g_Opponent.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
+    
     // ===============================================================================
     // ADICIONANDO MODELO DA ESPADA
     printf("DEBUG: loading sword model...\n");
@@ -556,18 +579,18 @@ int main(int argc, char* argv[])
         // INPUTS DE MOVIMENTACAO DO PERSONAGEM
         // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
         float currentTime = (float)glfwGetTime();
-        float deltaTime = currentTime - g_LastFrameTime;
-        g_LastFrameTime = currentTime;
-        g_AnimationTime += deltaTime;
+        float deltaTime = currentTime - g_CharacterLastFrameTime;
+        g_CharacterLastFrameTime = currentTime;
+        g_CharacterAnimationTime += deltaTime;
 
         int direction = resolveDirection(inputSystem.mapping);
 
-        if (currentTime < g_ForcedAnimationEnd) {
+        if (currentTime < g_CharacterForcedAnimationEnd) {
             // root motion do ataque: usa apenas o deslocamento do Hips e não soma
             // a translação interna da animação com a movimentação do personagem.
-            float prevAnimTime = glm::max(0.0f, g_AnimationTime - deltaTime);
-            glm::vec3 prevRootPos = g_Character.getBonePosition(g_CurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
-            glm::vec3 currRootPos = g_Character.getBonePosition(g_CurrentAnimation, ROOT_MOTION_BONE, g_AnimationTime);
+            float prevAnimTime = glm::max(0.0f, g_CharacterAnimationTime - deltaTime);
+            glm::vec3 prevRootPos = g_Character.getBonePosition(g_CharacterCurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
+            glm::vec3 currRootPos = g_Character.getBonePosition(g_CharacterCurrentAnimation, ROOT_MOTION_BONE, g_CharacterAnimationTime);
             float deltaZ = currRootPos.z - prevRootPos.z;
             g_CharacterX = g_CharacterStartX + deltaZ * ROOT_MOTION_SCALE;
             g_CharacterZ = g_CharacterStartZ;
@@ -592,7 +615,7 @@ int main(int argc, char* argv[])
         // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
 
         // animação da tecla "O"
-        if (inputSystem.mapping.justPressed(STRONG_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
+        if (inputSystem.mapping.justPressed(STRONG_ATTACK) && currentTime >= g_CharacterForcedAnimationEnd) {
             // calcula a duração da animação
             float dur = g_Character.getAnimationDuration("triple_slash_attack");
             if (dur <= 0.0f) dur = 1.0f;
@@ -602,12 +625,12 @@ int main(int argc, char* argv[])
             g_CharacterStartZ = g_CharacterZ;
 
             // salva tempo de início e duração total
-            g_AnimationStartTime = currentTime;
-            g_AnimationTotalDur  = dur;
+            g_CharacterAnimationStartTime = currentTime;
+            g_CharacterAnimationTotalDur  = dur;
 
-            g_CurrentAnimation   = "triple_slash_attack";
-            g_AnimationTime      = 0.0f;
-            g_ForcedAnimationEnd = currentTime + dur;
+            g_CharacterCurrentAnimation   = "triple_slash_attack";
+            g_CharacterAnimationTime      = 0.0f;
+            g_CharacterForcedAnimationEnd = currentTime + dur;
 
             // reset de spawn dos projeteis para nova animação
             g_Proj1Spawned = false;
@@ -617,7 +640,7 @@ int main(int argc, char* argv[])
 
         
         // animação da tecla "I"
-        if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_ForcedAnimationEnd) {
+        if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_CharacterForcedAnimationEnd) {
             float dur = g_Character.getAnimationDuration("sword_combo");
             if (dur <= 0.0f) dur = 1.0f; // fallback
 
@@ -625,33 +648,34 @@ int main(int argc, char* argv[])
             g_CharacterStartX = g_CharacterX;
             g_CharacterStartZ = g_CharacterZ;
 
-            g_CurrentAnimation = "sword_combo";
-            g_AnimationTime = 0.0f;
-            g_ForcedAnimationEnd = currentTime + dur;
-            //printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_ForcedAnimationEnd, currentTime); fflush(stdout);
+            g_CharacterCurrentAnimation = "sword_combo";
+            g_CharacterAnimationTime = 0.0f;
+            g_CharacterForcedAnimationEnd = currentTime + dur;
+            //printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_CharacterForcedAnimationEnd, currentTime); fflush(stdout);
         }
 
-        // se uma animação forçada está em progresso, deve manter "g_CurrentAnimation"
-        if (currentTime < g_ForcedAnimationEnd) {
+        // se uma animação forçada está em progresso, deve manter "g_CharacterCurrentAnimation"
+        if (currentTime < g_CharacterForcedAnimationEnd) {
             // mantém a animação atual (ação/ataque)
             g_CharacterX = g_CharacterStartX;
             g_CharacterZ = g_CharacterStartZ;
         } else {
             if (direction == 6)
-                g_CurrentAnimation = "walk_forward";
+                g_CharacterCurrentAnimation = "walk_forward";
             else if (direction == 4)
-                g_CurrentAnimation = "walk_backwards";
+                g_CharacterCurrentAnimation = "walk_backwards";
             else if (direction == 2)
-                g_CurrentAnimation = "strafe_right";
+                g_CharacterCurrentAnimation = "strafe_right";
             else if (direction == 8)
-                g_CurrentAnimation = "strafe_left";
+                g_CharacterCurrentAnimation = "strafe_left";
             else
-                g_CurrentAnimation = "idle";
+                g_CharacterCurrentAnimation = "idle";
         }
 
         // atualizacao dos bones
-        g_Character.update(g_AnimationTime, g_CurrentAnimation);
-        
+        g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
+        g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
+
         // atualização dos projeteis
         updateBezier(&g_SlashAttack, &g_Proj1, &g_Proj2);
         updateBezier(&g_SlashAttack, &g_Proj2, &g_Proj2);
@@ -664,12 +688,12 @@ int main(int argc, char* argv[])
         float delay1Seconds = 1.0f;
 
         if (!g_Proj1Spawned && 
-            g_CurrentAnimation == "triple_slash_attack" &&
-            currentTime >= g_AnimationStartTime + delay1Seconds) {
+            g_CharacterCurrentAnimation == "triple_slash_attack" &&
+            currentTime >= g_CharacterAnimationStartTime + delay1Seconds) {
             
-            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.position = g_CharacterSwordWorldPos;
             g_PlayerObject.transform.dirty = true;
-            g_TargetObject.transform.position = {g_SwordWorldPos.x + 5.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.position = {g_CharacterSwordWorldPos.x + 5.0f, g_CharacterSwordWorldPos.y, g_CharacterSwordWorldPos.z};
             g_TargetObject.transform.dirty = true;
             
             spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
@@ -680,12 +704,12 @@ int main(int argc, char* argv[])
         float delay2Seconds = 2.0f;
 
         if (!g_Proj2Spawned && 
-            g_CurrentAnimation == "triple_slash_attack" &&
-            currentTime >= g_AnimationStartTime + delay2Seconds) {
+            g_CharacterCurrentAnimation == "triple_slash_attack" &&
+            currentTime >= g_CharacterAnimationStartTime + delay2Seconds) {
             
-            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.position = g_CharacterSwordWorldPos;
             g_PlayerObject.transform.dirty = true;
-            g_TargetObject.transform.position = {g_SwordWorldPos.x + 5.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.position = {g_CharacterSwordWorldPos.x + 5.0f, g_CharacterSwordWorldPos.y, g_CharacterSwordWorldPos.z};
             g_TargetObject.transform.dirty = true;
             
             spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
@@ -696,12 +720,12 @@ int main(int argc, char* argv[])
         float delay3Seconds = 3.0f;
 
         if (!g_Proj3Spawned && 
-            g_CurrentAnimation == "triple_slash_attack" &&
-            currentTime >= g_AnimationStartTime + delay3Seconds) {
+            g_CharacterCurrentAnimation == "triple_slash_attack" &&
+            currentTime >= g_CharacterAnimationStartTime + delay3Seconds) {
             
-            g_PlayerObject.transform.position = g_SwordWorldPos;
+            g_PlayerObject.transform.position = g_CharacterSwordWorldPos;
             g_PlayerObject.transform.dirty = true;
-            g_TargetObject.transform.position = {g_SwordWorldPos.x + 5.0f, g_SwordWorldPos.y, g_SwordWorldPos.z};
+            g_TargetObject.transform.position = {g_CharacterSwordWorldPos.x + 5.0f, g_CharacterSwordWorldPos.y, g_CharacterSwordWorldPos.z};
             g_TargetObject.transform.dirty = true;
             
             spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
@@ -840,10 +864,18 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
+        /*
+        float directionToOpponent = atan2(
+            g_OpponentX - g_CharacterX, 
+            g_OpponentZ - g_CharacterZ
+        );
+        */
+
         // envia matriz de modelo
         glm::mat4 charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
                             * Matrix_Scale(0.01f, 0.01f, 0.01f)
                             * Matrix_Rotate_Y(3.141592 / 2.0f);
+                            //* Matrix_Rotate_Y(directionToOpponent);
         glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(charModel));
         
         // Envia as matrizes dos bones
@@ -859,7 +891,40 @@ int main(int argc, char* argv[])
 
         // volta para o shader original
         glUseProgram(g_GpuProgramID);
+
         // =================================================================
+        // OPONENTE
+        glUseProgram(g_AnimatedProgramID);
+
+        // envia view e projection
+        glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+
+        // fazendo oponente sempre olhar para o personagem
+        float directionToChar = atan2(
+            g_CharacterX - g_OpponentX, 
+            g_CharacterZ - g_OpponentZ
+        );
+
+        // envia matriz de modelo
+        glm::mat4 opponentModel = Matrix_Translate(g_OpponentX, g_OpponentY, g_OpponentZ)
+                            * Matrix_Scale(0.01f, 0.01f, 0.01f)
+                            * Matrix_Rotate_Y(directionToChar);
+        glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentModel));
+        
+        // Envia as matrizes dos bones
+        glUniformMatrix4fv(g_anim_bones_uniform,
+                        (GLsizei)g_Opponent.boneMatrices.size(),
+                        GL_FALSE,
+                        glm::value_ptr(g_Opponent.boneMatrices[0]));
+
+        glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
+
+        // faz o desenho do modelo
+        g_Opponent.draw();
+
+        // volta para o shader original
+        glUseProgram(g_GpuProgramID);
 
         // =================================================================
         // DESENHO DO MODELO DA ESPADA
@@ -879,7 +944,7 @@ int main(int argc, char* argv[])
                             * Matrix_Rotate_Z(3.141592f)
                             * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
-        g_SwordWorldPos = glm::vec3(swordModel[3][0], swordModel[3][1], swordModel[3][2]);
+        g_CharacterSwordWorldPos = glm::vec3(swordModel[3][0], swordModel[3][1], swordModel[3][2]);
         
         glUseProgram(g_GpuProgramID);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
@@ -896,7 +961,39 @@ int main(int argc, char* argv[])
         DrawVirtualObject("Grip_low");
 
         // ========================================================================
+        // DESENHO DA ESPADA DO OPONENTE
 
+        glActiveTexture(GL_TEXTURE0 + 2);
+        glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
+
+        // matriz do bone da mão direita
+        glm::mat4 opponentRightHandMatrix = g_Opponent.getBoneMatrix("mixamorig:RightHand");
+        
+        // espada segue o bone da mão direita
+        glm::mat4 opponentSwordModel = opponentModel * opponentRightHandMatrix
+                            * Matrix_Translate(0.8f, 0.8f, -1.1f)
+                            * Matrix_Rotate_Y(3.141592f / 2.0f)
+                            * Matrix_Rotate_X(3.141592f / 2.0f)
+                            * Matrix_Rotate_Z(3.141592f)
+                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
+
+        g_OpponentSwordWorldPos = glm::vec3(opponentSwordModel[3][0], opponentSwordModel[3][1], opponentSwordModel[3][2]);
+        
+        glUseProgram(g_GpuProgramID);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
+        glUniform1i(g_object_id_uniform, SWORD);
+
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
+
+        // ========================================================================
         // renderização dos projéteis
     
         // Proj1
