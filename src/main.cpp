@@ -240,6 +240,11 @@ GLuint g_BackgroundTextureID = 0;
 GLuint g_SwordTextureID = 0;
 GLuint g_ProjectileTextureID = 0;
 
+// varíaves para shader da barra de vida
+GLuint g_HudProgramID = 0;
+GLuint g_HudVAO = 0;
+GLuint g_HudVBO = 0;
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 #include "gameLogic\inputs\input_debug.h"
 #include "gameLogic\inputs\input_system.h"
@@ -296,7 +301,6 @@ float g_CharacterAnimationTotalDur = 0.0f;
 
 // ==============================================================================
 // VARIÁVEIS PARA O OPONENTE
-// VARIÁVEIS PARA O OPONENTE
 AnimatedModel g_Opponent;
 std::string g_OpponentCurrentAnimation = "idle";
 float g_OpponentX = 3.0f;
@@ -320,13 +324,49 @@ bool g_Proj3Spawned = false;
 Object g_PlayerObject;
 Object g_TargetObject;
 
+Object g_OpponentObject;
+
+
+
 // posição global da espada do personagem para guiar os projeteis
 glm::vec3 g_CharacterSwordWorldPos = glm::vec3(0.0f);
 
 // posição global da espada do oponente para guiar os projeteis
 glm::vec3 g_OpponentSwordWorldPos = glm::vec3(0.0f);
 
+// =============================================================================
+// VARIÁVEIS PARA BARRA DE VIDA
+float g_CharacterHP = 100.0f;
+float g_OpponentHP = 100.0f;
+const float MAX_HP = 100.0f;
+
 // ===============================================================================
+
+void DrawRect2D(float x, float y, float w, float h, float r, float g, float b, float a = 1.0f)
+{
+    float verts[] = {
+        x,     y,
+        x,     y - h,
+        x + w, y - h,
+        x,     y,
+        x + w, y - h,
+        x + w, y
+    };
+
+    glDisable(GL_DEPTH_TEST);
+    glUseProgram(g_HudProgramID);
+
+    glBindVertexArray(g_HudVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g_HudVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+    GLint colorLoc = glGetUniformLocation(g_HudProgramID, "color");
+    glUniform4f(colorLoc, r, g, b, a);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
+}
 
 
 int main(int argc, char* argv[])
@@ -447,7 +487,24 @@ int main(int argc, char* argv[])
     g_anim_projection_uniform = glGetUniformLocation(g_AnimatedProgramID, "projection");
     g_anim_bones_uniform = glGetUniformLocation(g_AnimatedProgramID, "boneMatrices");
 
+    // ===============================================================================
+    // CARREGANDO SHADERS DO HUD (barra de vida)
+    printf("DEBUG: Loading HUD shaders...\n");
+    fflush(stdout);
+    GLuint hud_vert = LoadShader_Vertex("../../src/shaders/shader_vertex_hud.glsl");
+    GLuint hud_frag = LoadShader_Fragment("../../src/shaders/shader_fragment_hud.glsl");
+    g_HudProgramID = CreateGpuProgram(hud_vert, hud_frag);
     
+    // VAO para retângulos 2D das barras de vida
+    glGenVertexArrays(1, &g_HudVAO);
+    glGenBuffers(1, &g_HudVBO);
+    glBindVertexArray(g_HudVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g_HudVBO);
+    glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindVertexArray(0);
+
     // ===============================================================================
     // adicionando textura para o plano
     g_FloorTextureID = LoadTextureImage("../../data/ambient/floor_texture.jpg"); // TextureImage0
@@ -487,6 +544,9 @@ int main(int argc, char* argv[])
     g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
     g_TargetObject.transform.dirty = true;
     */
+
+    // corpo de colisão do oponente
+    g_OpponentObject.addBody(Body3D(1.0f, 2.0f, 1.0f));
 
     // CARREGANDO ANIMAÇÕES
     printf("DEBUG: loading character animations...\n");
@@ -689,6 +749,11 @@ int main(int argc, char* argv[])
             }
         }
 
+        // atualiza posição do oponente
+        g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY + 1.0f, g_OpponentZ};
+        g_OpponentObject.transform.dirty = true;
+        g_OpponentObject.update();
+
         // atualizacao dos bones
         g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
         g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
@@ -698,6 +763,21 @@ int main(int argc, char* argv[])
         updateBezier(&g_SlashAttack, &g_Proj2, &g_Proj2);
         updateBezier(&g_SlashAttack, &g_Proj3, &g_Proj2);
         
+        // ================================================================
+        // verifica colisão de cada projétil com o oponente
+        auto checkProjHit = [&](Projectile& proj) {
+            if (!proj.isActive) return;
+            if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
+                g_OpponentHP -= 10.0f; // dano por projétil
+                g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+                proj.isActive = false; // desativa o projétil ao acertar
+            }
+        };
+
+        checkProjHit(g_Proj1);
+        checkProjHit(g_Proj2);
+        checkProjHit(g_Proj3);
+
         // ================================================================
         // AJUSTANDO SPAWN DOS PROJETEIS
 
@@ -1095,6 +1175,28 @@ int main(int argc, char* argv[])
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
         TextRendering_ShowFramesPerSecond(window);
+
+        // =============================================================================
+        float playerRatio   = g_CharacterHP / MAX_HP;
+        float opponentRatio = g_OpponentHP / MAX_HP;
+
+        // fundo das barras (cinza escuro)
+        DrawRect2D(-0.95f,  0.95f, 0.85f, 0.07f, 0.2f, 0.2f, 0.2f);
+        DrawRect2D( 0.10f,  0.95f, 0.85f, 0.07f, 0.2f, 0.2f, 0.2f);
+
+        // barra do jogador (verde→vermelho)
+        DrawRect2D(-0.95f, 0.95f, 0.85f * playerRatio, 0.07f,
+                1.0f - playerRatio, playerRatio, 0.0f);
+
+        // barra do oponente (espelhada, da direita para esquerda)
+        float oppWidth = 0.85f * opponentRatio;
+        DrawRect2D(0.95f - oppWidth, 0.95f, oppWidth, 0.07f,
+                1.0f - opponentRatio, opponentRatio, 0.0f);
+
+        // nomes
+        TextRendering_PrintString(window, "P1", -0.95f, 0.90f, 1.5f);
+        TextRendering_PrintString(window, "P2",  0.92f, 0.90f, 1.5f);
+        // ===========================================================================
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
