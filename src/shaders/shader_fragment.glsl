@@ -18,6 +18,10 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+// Posicao da luz da espada
+uniform vec4 player_sword_light_pos;
+uniform vec4 enemy_sword_light_pos;
+
 // Identificador que define qual objeto está sendo desenhado no momento
 #define PLANE  0
 #define BACKGROUND 1
@@ -28,6 +32,8 @@ uniform int object_id;
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
 uniform vec4 bbox_min;
 uniform vec4 bbox_max;
+
+//
 
 // Variáveis para acesso das imagens de textura
 uniform sampler2D TextureImage0; // PLANE
@@ -63,6 +69,43 @@ void main()
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
     vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
+
+    // Calculos das iluminacoes das espadas
+    //PLAYER
+    vec4 player_sword_light_vec = player_sword_light_pos - p;
+    vec4 player_sword_l = normalize(player_sword_light_vec);
+
+    vec3 player_sword_color = vec3(0.0, 0.7, 0.3);
+
+    float player_sword_lambert =
+        max(0.0, dot(n, player_sword_l));
+
+    float player_sword_distance =
+        length(player_sword_light_vec.xyz);
+
+    float player_sword_attenuation =
+        1.0 / (1.0 +
+            0.09 * player_sword_distance +
+            0.032 * player_sword_distance * player_sword_distance);
+
+    //ENEMY
+    vec4 enemy_sword_light_vec = enemy_sword_light_pos - p;
+    vec4 enemy_sword_l = normalize(enemy_sword_light_vec);
+
+    vec3 enemy_sword_color = vec3(1.0, 0.0, 1.0);
+
+    float enemy_sword_lambert =
+        max(0.0, dot(n, enemy_sword_l));
+
+    float enemy_sword_distance =
+        length(enemy_sword_light_vec.xyz);
+
+    float enemy_sword_attenuation =
+        1.0 / (1.0 +
+            0.09 * enemy_sword_distance +
+            0.032 * enemy_sword_distance * enemy_sword_distance);
+
+    float sword_intensity = 3.0;
 
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
@@ -103,13 +146,24 @@ void main()
         Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
     }
 
+    //luz da espada
+    vec3 sword_light_p = Kd0 * player_sword_color *
+                         player_sword_lambert *
+                         player_sword_attenuation *
+                         sword_intensity;
+
+    vec3 sword_light_e = Kd0 * enemy_sword_color *
+                         enemy_sword_lambert *
+                         enemy_sword_attenuation *
+                         sword_intensity;
+
     
     // Equação de Iluminação
     float lambert = max(0.0 ,dot(n,l));
 
     float ambient = 0.6;
 
-    color.rgb = Kd0 * (ambient + lambert);
+    color.rgb = Kd0 * (ambient + lambert) + sword_light_p + sword_light_e;
     
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é

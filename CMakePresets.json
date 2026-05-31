@@ -1,35 +1,48 @@
 {
-  "version": 6,
-  "configurePresets": [
-    {
-      "name": "default-config",
-      "binaryDir": "${sourceDir}/build"
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "default-build",
-      "configurePreset": "default-config"
-    },
-    {
-      "name": "build-run",
-      "configurePreset": "default-config",
-      "targets": ["run"]
-    }
-  ],
-  "workflowPresets": [
-    {
-      "name": "configure-build-run",
-      "steps": [
+    "version": 6,
+
+    "configurePresets": [
         {
-          "type": "configure",
-          "name": "default-config"
+            "name": "ucrt64-debug",
+            "displayName": "MSYS2 UCRT64 (Debug)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/gcc.exe",
+                "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/g++.exe",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        }
+    ],
+
+    "buildPresets": [
+        {
+            "name": "build",
+            "configurePreset": "ucrt64-debug"
         },
         {
-          "type": "build",
-          "name": "build-run"
+            "name": "build-run",
+            "configurePreset": "ucrt64-debug",
+            "targets": [
+                "run"
+            ]
         }
-      ]
-    }
-  ]
+    ],
+
+    "workflowPresets": [
+        {
+            "name": "configure-build",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "ucrt64-debug"
+                },
+                {
+                    "type": "build",
+                    "name": "build"
+                }
+            ]
+        }
+    ]
 }

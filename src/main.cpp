@@ -222,6 +222,9 @@ GLint g_object_id_uniform;
 GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
 
+GLint g_player_sword_light_pos_uniform;
+GLint g_enemy_sword_light_pos_uniform;
+
 // ============================================================================
 // variaveis para o segundo programa de GPU
 GLuint g_AnimatedProgramID = 0;
@@ -229,6 +232,9 @@ GLint g_anim_model_uniform;
 GLint g_anim_view_uniform;
 GLint g_anim_projection_uniform;
 GLint g_anim_bones_uniform;
+
+GLint g_anim_player_sword_light_pos_uniform;
+GLint g_anim_enemy_sword_light_pos_uniform;
 // ===========================================================================
 
 // Número de texturas carregadas pela função LoadTextureImage()
@@ -264,6 +270,9 @@ GLuint g_HudVBO = 0;
 // includes para golpe com curvas de bezier (slash attacks)
 #include "gameLogic\attacks\attacks.h"
 #include "gameLogic\entities\Object.h"
+
+//include para a camera
+#include "camera\camera.h"
 // ==============================================================================
 
 // ==============================================================================
@@ -487,6 +496,9 @@ int main(int argc, char* argv[])
     g_anim_projection_uniform = glGetUniformLocation(g_AnimatedProgramID, "projection");
     g_anim_bones_uniform = glGetUniformLocation(g_AnimatedProgramID, "boneMatrices");
 
+    g_anim_player_sword_light_pos_uniform = glGetUniformLocation(g_AnimatedProgramID, "player_sword_light_pos");
+    g_anim_enemy_sword_light_pos_uniform = glGetUniformLocation(g_AnimatedProgramID, "enemy_sword_light_pos");
+
     // ===============================================================================
     // CARREGANDO SHADERS DO HUD (barra de vida)
     printf("DEBUG: Loading HUD shaders...\n");
@@ -613,6 +625,10 @@ int main(int argc, char* argv[])
     printf("DEBUG: Text rendering initialized successfully.\n");
     fflush(stdout);
 
+    //Inicializacao da camera
+    LookAtCamera camera;
+    camera.aspectRatio = g_ScreenRatio;
+
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
     glEnable(GL_DEPTH_TEST);
 
@@ -659,14 +675,27 @@ int main(int argc, char* argv[])
             g_CharacterZ = g_CharacterStartZ;
         } else {
 
-            if (direction == 4 || direction == 1 || direction == 7) // Esquerda
-                g_CharacterX -= MOVE_SPEED;
-            if (direction == 6 || direction == 3 || direction == 9) // Direita
-                g_CharacterX += MOVE_SPEED;
-            if (direction == 2 || direction == 1 || direction == 3)
-                g_CharacterZ += MOVE_SPEED;
-            if (direction == 8 || direction == 7 || direction == 9)
-                g_CharacterZ -= MOVE_SPEED;
+            glm::vec3 forward = glm::normalize(glm::vec3(g_OpponentX - g_CharacterX, 0.0f, g_OpponentZ - g_CharacterZ));
+            glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+            glm::vec3 movement(0.0f);
+
+            if (direction == 6) movement += forward;
+            else if (direction == 4) movement -= forward;
+            else if (direction == 2) movement += right;
+            else if (direction == 8) movement -= right;
+            else if (direction == 9) movement += forward - right;
+            else if (direction == 3) movement += forward + right;
+            else if (direction == 7) movement += -forward - right;
+            else if (direction == 1) movement += -forward + right;
+
+            if (glm::length(movement) > 0.0f)
+            {
+                movement = glm::normalize(movement);
+
+                g_CharacterX += movement.x * MOVE_SPEED;
+                g_CharacterZ += movement.z * MOVE_SPEED;
+            }
         }
         
         // limitacao do personagem para nao sair do plano
@@ -854,11 +883,22 @@ int main(int argc, char* argv[])
         // os shaders de vértice e fragmentos).
         glUseProgram(g_GpuProgramID);
 
+        glUniform4f(g_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação do cenário
+                    g_CharacterSwordWorldPos.x, 
+                    g_CharacterSwordWorldPos.y, 
+                    g_CharacterSwordWorldPos.z, 1.0f);
+
+        glUniform4f(g_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação do cenário
+                    g_OpponentSwordWorldPos.x, 
+                    g_OpponentSwordWorldPos.y, 
+                    g_OpponentSwordWorldPos.z, 1.0f);
+
+
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
         // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
         // e ScrollCallback().
-        float r = g_CameraDistance;
+        /*float r = g_CameraDistance;
         float y = r*sin(g_CameraPhi);
         float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
         float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
@@ -882,18 +922,24 @@ int main(int argc, char* argv[])
         //glm::vec4 camera_lookat_l    = character_center;
         glm::vec4 camera_lookat_l    = camera_center;
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c;
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+        glm::vec4 camera_up_vector   = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);*/
 
         // =========================================================================
 
+        g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};//isso é temporário. essa atualização de posição será feita junto da movimentacao do personagem, e não toda frame aqui no main.
+        g_PlayerObject.transform.dirty = true;
+        g_PlayerObject.update();
+
+        camera.update(deltaTime, g_PlayerObject, g_OpponentObject);
+
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+        glm::mat4 view = camera.getViewMatrix();
 
         // Agora computamos a matriz de Projeção.
-        glm::mat4 projection;
+        glm::mat4 projection = camera.getProjectionMatrix();
 
-        // Note que, no sistema de coordenadas da câmera, os planos near e far
+        /*// Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
         float farplane  = -25.0f; // Posição do "far plane"
@@ -917,7 +963,7 @@ int main(int argc, char* argv[])
             float r = t*g_ScreenRatio;
             float l = -r;
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
-        }
+        }*/
 
         glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
@@ -962,6 +1008,16 @@ int main(int argc, char* argv[])
         // troca para shader animado
         glUseProgram(g_AnimatedProgramID);
 
+        glUniform3f(g_anim_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação dos personagens
+                    g_CharacterSwordWorldPos.x, 
+                    g_CharacterSwordWorldPos.y, 
+                    g_CharacterSwordWorldPos.z);
+
+        glUniform3f(g_anim_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação dos personagens
+                    g_OpponentSwordWorldPos.x, 
+                    g_OpponentSwordWorldPos.y, 
+                    g_OpponentSwordWorldPos.z);
+
         // envia view e projection
         glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
@@ -995,6 +1051,16 @@ int main(int argc, char* argv[])
         // =================================================================
         // OPONENTE
         glUseProgram(g_AnimatedProgramID);
+
+        glUniform3f(g_anim_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação dos personagens
+                    g_CharacterSwordWorldPos.x, 
+                    g_CharacterSwordWorldPos.y, 
+                    g_CharacterSwordWorldPos.z);
+
+        glUniform3f(g_anim_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação dos personagens
+                    g_OpponentSwordWorldPos.x, 
+                    g_OpponentSwordWorldPos.y, 
+                    g_OpponentSwordWorldPos.z);
 
         // envia view e projection
         glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
@@ -1355,6 +1421,10 @@ void LoadShadersFromFiles()
     g_object_id_uniform  = glGetUniformLocation(g_GpuProgramID, "object_id"); // Variável "object_id" em shader_fragment.glsl
     g_bbox_min_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_min");
     g_bbox_max_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_max");
+
+    g_player_sword_light_pos_uniform = glGetUniformLocation(g_GpuProgramID, "player_sword_light_pos");
+    g_enemy_sword_light_pos_uniform = glGetUniformLocation(g_GpuProgramID, "enemy_sword_light_pos");
+
     printf("DEBUG: Uniform locations obtained.\n");
     fflush(stdout);
 

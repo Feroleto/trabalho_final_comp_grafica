@@ -13,6 +13,7 @@ uniform mat4 boneMatrices[100];
 
 out vec2 texcoords_frag;
 out vec3 normal_frag;
+out vec3 position_world_frag;
 
 void main()
 {
@@ -25,7 +26,11 @@ void main()
     vec4 skinnedPos    = boneTransform * vec4(position, 1.0);
     vec4 skinnedNormal = boneTransform * vec4(normal, 0.0);
 
-    gl_Position    = projection * view * model * skinnedPos;
+    vec4 worldPos = model * skinnedPos;
+
+    gl_Position = projection * view * worldPos;
+
+    position_world_frag = worldPos.xyz;
     texcoords_frag = texCoords;
     normal_frag    = normalize(mat3(model) * vec3(skinnedNormal));
 }

@@ -20,6 +20,8 @@ set(SOURCES
 
   src/gameLogic/attacks/attacks.cpp
 
+  src/camera/camera.cpp
+
   src/character/animatedModel.cpp
 )
 

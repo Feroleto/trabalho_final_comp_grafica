@@ -2,5 +2,6 @@ bin
 build
 compilation_infos.txt
 CMakeUserPresets.json
+CMakePresets.json
 .vscode/settings.json
 .vscode/c_cpp_properties.json
