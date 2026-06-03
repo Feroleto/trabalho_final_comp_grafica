@@ -1,5 +1,6 @@
 #include "camera.h"
 #include "../gameLogic/entities/Object.h"
+#include "../gameLogic/collision_system/utilStructures.h"
 
  glm::vec3 LookAtCamera::getViewDirection() {
         return normalize(lookat - position);
@@ -66,20 +67,30 @@
     }
 
     glm::mat4 FreeCamera::getViewMatrix() {
-        glm::mat4 R = rotateM(-transform.rotation);//negativo
+        glm::vec3 target = transform.position + forward;
+        glm::vec3 zaxis = normalize(transform.position - target);
+        glm::vec3 xaxis = normalize(cross(up, zaxis));
+        glm::vec3 yaxis = cross(zaxis, xaxis);
 
-        glm::mat4 T = translateM(-transform.position);//negativo
+        glm::mat4 V(1.0f);
+        V[0][0] = xaxis.x; V[1][0] = xaxis.y; V[2][0] = xaxis.z;
+        V[0][1] = yaxis.x; V[1][1] = yaxis.y; V[2][1] = yaxis.z;
+        V[0][2] = zaxis.x; V[1][2] = zaxis.y; V[2][2] = zaxis.z;
 
-        return R * T;
+        V[3][0] = -dot(xaxis, transform.position);
+        V[3][1] = -dot(yaxis, transform.position);
+        V[3][2] = -dot(zaxis, transform.position);
+
+        return V;
     }
 
-    glm::mat4 FreeCamera::getProjectionMatrix(float aspect) {
+    glm::mat4 FreeCamera::getProjectionMatrix() {
         float tanHalfFov =
             tan((fov * PI / 180.0f) * 0.5f);
 
         glm::mat4 P(0.0f);
 
-        P[0][0] = 1.0f / (aspect * tanHalfFov);
+        P[0][0] = 1.0f / (aspectRatio * tanHalfFov);
         P[1][1] = 1.0f / tanHalfFov;
 
         P[2][2] =
@@ -93,4 +104,20 @@
             (farPlane - nearPlane);
 
         return P;
+    }
+
+    void FreeCamera::update(float delta) {
+        float maxPitch = PI * 0.5f - 0.01f;
+        if (transform.rotation.x > maxPitch) transform.rotation.x = maxPitch;
+        if (transform.rotation.x < -maxPitch) transform.rotation.x = -maxPitch;
+
+        float cy = cos(transform.rotation.y);
+        float sy = sin(transform.rotation.y);
+        float cp = cos(transform.rotation.x);
+        float sp = sin(transform.rotation.x);
+
+        forward.x = cp * sy;
+        forward.y = sp;
+        forward.z = -cp * cy;
+        forward = normalize(forward);
     }

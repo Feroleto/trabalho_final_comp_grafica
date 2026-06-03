@@ -10,16 +10,23 @@ constexpr float PI = 3.14159265359f;
 
 struct FreeCamera {
     Transform3D transform;
-    
-    float nearPlane = 0.1f;//positivo
-    float farPlane = 10.0f;//positivo
 
-    float fov = 45.0f;
+    float nearPlane = 0.1f; // positivo
+    float farPlane = 100.0f; // positivo
+
+    float fov = 60.0f;
     float aspectRatio = 4.0f / 3.0f;
+
+    float yaw = 0.0f;
+    float pitch = 0.0f;
+    glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glm::mat4 getViewMatrix();
 
-    glm::mat4 getProjectionMatrix(float aspect);
+    glm::mat4 getProjectionMatrix();
+
+    void update(float delta);
 };
 
 

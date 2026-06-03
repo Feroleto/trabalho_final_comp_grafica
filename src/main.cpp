@@ -262,6 +262,8 @@ GLuint g_DebugLineVBO = 0;
 bool g_ShowDebugHitboxes = true;
 const int DEBUG_BOX = 4;
 
+bool isFreeCamera = false;
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 #include "gameLogic\inputs\input_debug.h"
 #include "gameLogic\inputs\input_system.h"
@@ -633,6 +635,7 @@ int main(int argc, char* argv[])
 
     //Inicializacao da camera
     LookAtCamera camera;
+    FreeCamera freeCamera;
     camera.aspectRatio = g_ScreenRatio;
 
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
@@ -659,6 +662,14 @@ int main(int argc, char* argv[])
         glfwPollEvents();
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
         inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
+
+        if(inputSystem.mapping.justPressed(HITBOX_DEBUG)){
+            g_ShowDebugHitboxes = !g_ShowDebugHitboxes;
+        }
+
+        if(inputSystem.mapping.justPressed(CAMERA_MODE_CHANGE)){
+            isFreeCamera = !isFreeCamera;
+        }
 
         // ============================================================================
         // INPUTS DE MOVIMENTACAO DO PERSONAGEM
@@ -952,13 +963,37 @@ int main(int argc, char* argv[])
         // =========================================================================
 
         camera.update(deltaTime, g_PlayerObject, g_OpponentObject);
+        if (isFreeCamera) {
+            float cameraSpeed = 3.0f * deltaTime;
+            glm::vec3 up = freeCamera.up;
+            glm::vec3 right = glm::normalize(glm::cross(freeCamera.forward, up));
+            glm::vec3 groundForward = glm::normalize(glm::cross(up, right));
+
+            if (inputSystem.mapping.pressed(CAMERA_UP)) freeCamera.transform.position += up * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_DOWN)) freeCamera.transform.position -= up * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_LEFT)) freeCamera.transform.position -= right * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_RIGHT)) freeCamera.transform.position += right * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_FORWARD)) freeCamera.transform.position += groundForward * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_BACKWARD)) freeCamera.transform.position -= groundForward * cameraSpeed;
+
+            freeCamera.transform.rotation.x = g_CameraPhi;
+            freeCamera.transform.rotation.y = g_CameraTheta;
+            freeCamera.update(deltaTime);
+        }
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
+        
         glm::mat4 view = camera.getViewMatrix();
+        if (isFreeCamera) {
+            view = freeCamera.getViewMatrix();
+        }
 
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection = camera.getProjectionMatrix();
+        if (isFreeCamera) {
+            projection = freeCamera.getProjectionMatrix();
+        }
 
         /*// Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
@@ -1259,14 +1294,14 @@ int main(int argc, char* argv[])
         
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
-        TextRendering_ShowEulerAngles(window);
+        //TextRendering_ShowEulerAngles(window);
 
         // Imprimimos na informação sobre a matriz de projeção sendo utilizada.
-        TextRendering_ShowProjection(window);
+        //TextRendering_ShowProjection(window);
 
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
-        TextRendering_ShowFramesPerSecond(window);
+        //TextRendering_ShowFramesPerSecond(window);
 
         // =============================================================================
         float playerRatio   = g_CharacterHP / MAX_HP;
