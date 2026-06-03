@@ -80,6 +80,9 @@ public:
                               const std::string& boneName,
                               float animTime) const;
 
+    // retorna lista de nomes dos bones na ordem do índice (0..boneCount-1)
+    std::vector<std::string> getBoneNames() const;
+
     // matrizes dos bones para enviar ao shader
     std::vector<glm::mat4> boneMatrices;
 

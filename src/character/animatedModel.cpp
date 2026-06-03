@@ -316,6 +316,17 @@ glm::vec3 AnimatedModel::getBonePosition(const std::string& animName,
     return glm::vec3(0.0f);
 }
 
+std::vector<std::string> AnimatedModel::getBoneNames() const {
+    std::vector<std::string> names;
+    if (boneCount <= 0) return names;
+    names.assign(boneCount, std::string());
+    for (const auto& p : boneNameToIndex) {
+        int idx = p.second;
+        if (idx >= 0 && idx < boneCount) names[idx] = p.first;
+    }
+    return names;
+}
+
 void AnimatedModel::loadMaterialTextures() {
     materialTextures.resize(modelScene->mNumMaterials, 0);
     for (unsigned int i = 0; i < modelScene->mNumMaterials; i++) {

@@ -119,6 +119,11 @@ void ComputeNormals(ObjModel* model); // Computa normais de um ObjModel, caso n�
 void LoadShadersFromFiles(); // Carrega os shaders de vértice e fragmento, criando um programa de GPU
 GLuint LoadTextureImage(const char* filename); // Função que carrega imagens de textura
 void DrawVirtualObject(const char* object_name); // Desenha um objeto armazenado em g_VirtualScene
+
+class Object;
+
+void InitDebugHitboxRenderer();
+void DrawDebugHitboxes(const Object& object, const glm::mat4& view, const glm::mat4& projection, int objectId);
 GLuint LoadShader_Vertex(const char* filename);   // Carrega um vertex shader
 GLuint LoadShader_Fragment(const char* filename); // Carrega um fragment shader
 void LoadShader(const char* filename, GLuint shader_id); // Função utilizada pelas duas acima
@@ -250,6 +255,12 @@ GLuint g_ProjectileTextureID = 0;
 GLuint g_HudProgramID = 0;
 GLuint g_HudVAO = 0;
 GLuint g_HudVBO = 0;
+
+// variáveis para renderização de hitboxes de debug
+GLuint g_DebugLineVAO = 0;
+GLuint g_DebugLineVBO = 0;
+bool g_ShowDebugHitboxes = true;
+const int DEBUG_BOX = 4;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 #include "gameLogic\inputs\input_debug.h"
@@ -517,6 +528,8 @@ int main(int argc, char* argv[])
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glBindVertexArray(0);
 
+    InitDebugHitboxRenderer();
+
     // ===============================================================================
     // adicionando textura para o plano
     g_FloorTextureID = LoadTextureImage("../../data/ambient/floor_texture.jpg"); // TextureImage0
@@ -546,19 +559,9 @@ int main(int argc, char* argv[])
     printf("DEBUG: Yoshimitsu model loaded successfully.\n");
     fflush(stdout);
 
-    /*
-    // incicializando o objeto do personagem
+    g_PlayerObject.setAnimatedModel(&g_Character);
     g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
     g_PlayerObject.transform.dirty = true;
-
-    // alvo ficticio na frente do personagem para testes
-    //g_TargetObject.transform.position = {g_CharacterX + 6.0f, g_CharacterY, g_CharacterZ + 0.5f};
-    g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
-    g_TargetObject.transform.dirty = true;
-    */
-
-    // corpo de colisão do oponente
-    g_OpponentObject.addBody(Body3D(1.0f, 2.0f, 1.0f));
 
     // CARREGANDO ANIMAÇÕES
     printf("DEBUG: loading character animations...\n");
@@ -574,6 +577,9 @@ int main(int argc, char* argv[])
     // ===============================================================================
     // carregando animações do oponente (mesmo modelo)
     g_Opponent.loadModel("../../data/Yoshimitsu_animations/Tpose.fbx");
+    g_OpponentObject.setAnimatedModel(&g_Opponent);
+    g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+    g_OpponentObject.transform.dirty = true;
     g_Opponent.loadAnimation("idle", "../../data/Yoshimitsu_animations/Idle.fbx");
     g_Opponent.loadAnimation("walk_forward", "../../data/Yoshimitsu_animations/Walk_forward.fbx");
     g_Opponent.loadAnimation("walk_backwards", "../../data/Yoshimitsu_animations/Walk_backwards.fbx");
@@ -779,13 +785,32 @@ int main(int argc, char* argv[])
         }
 
         // atualiza posição do oponente
-        g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY + 1.0f, g_OpponentZ};
-        g_OpponentObject.transform.dirty = true;
-        g_OpponentObject.update();
+        /*g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY + 1.0f, g_OpponentZ};
+        g_OpponentObject.transform.dirty = true;*/
 
         // atualizacao dos bones
         g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
         g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
+
+        float directionToOpponent = atan2(
+            g_OpponentX - g_CharacterX,
+            g_OpponentZ - g_CharacterZ
+        );
+        float directionToChar = atan2(
+            g_CharacterX - g_OpponentX,
+            g_CharacterZ - g_OpponentZ
+        );
+
+        g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+        g_PlayerObject.transform.rotation = {0.0f, directionToOpponent, 0.0f};
+        g_PlayerObject.transform.dirty = true;
+
+        g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+        g_OpponentObject.transform.rotation = {0.0f, directionToChar, 0.0f};
+        g_OpponentObject.transform.dirty = true;
+
+        g_PlayerObject.update();
+        g_OpponentObject.update();
 
         // atualização dos projeteis
         updateBezier(&g_SlashAttack, &g_Proj1, &g_Proj2);
@@ -926,10 +951,6 @@ int main(int argc, char* argv[])
 
         // =========================================================================
 
-        g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};//isso é temporário. essa atualização de posição será feita junto da movimentacao do personagem, e não toda frame aqui no main.
-        g_PlayerObject.transform.dirty = true;
-        g_PlayerObject.update();
-
         camera.update(deltaTime, g_PlayerObject, g_OpponentObject);
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
@@ -1022,7 +1043,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        float directionToOpponent = atan2(
+        directionToOpponent = atan2(
             g_OpponentX - g_CharacterX, 
             g_OpponentZ - g_CharacterZ
         );
@@ -1067,7 +1088,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
         // fazendo oponente sempre olhar para o personagem
-        float directionToChar = atan2(
+        directionToChar = atan2(
             g_CharacterX - g_OpponentX, 
             g_CharacterZ - g_OpponentZ
         );
@@ -1091,6 +1112,11 @@ int main(int argc, char* argv[])
 
         // volta para o shader original
         glUseProgram(g_GpuProgramID);
+
+        if (g_ShowDebugHitboxes) {
+            DrawDebugHitboxes(g_PlayerObject, view, projection, DEBUG_BOX);
+            DrawDebugHitboxes(g_OpponentObject, view, projection, DEBUG_BOX);
+        }
 
         // =================================================================
         // DESENHO DO MODELO DA ESPADA
@@ -1366,6 +1392,66 @@ void DrawVirtualObject(const char* object_name)
 
     // "Desligamos" o VAO, evitando assim que operações posteriores venham a
     // alterar o mesmo. Isso evita bugs.
+    glBindVertexArray(0);
+}
+
+struct DebugVertex {
+    glm::vec4 position;
+    glm::vec4 normal;
+    glm::vec2 texcoord;
+};
+
+void InitDebugHitboxRenderer() {
+    glGenVertexArrays(1, &g_DebugLineVAO);
+    glGenBuffers(1, &g_DebugLineVBO);
+    glBindVertexArray(g_DebugLineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g_DebugLineVBO);
+    glBufferData(GL_ARRAY_BUFFER, 768 * sizeof(DebugVertex), nullptr, GL_DYNAMIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), (void*)offsetof(DebugVertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), (void*)offsetof(DebugVertex, normal));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), (void*)offsetof(DebugVertex, texcoord));
+
+    glBindVertexArray(0);
+}
+
+void DrawDebugHitboxes(const Object& object, const glm::mat4& view, const glm::mat4& projection, int objectId) {
+    if (object.bodies.empty()) return;
+
+    const int edgeIndices[24] = {
+        0,1, 1,3, 3,2, 2,0,
+        4,5, 5,7, 7,6, 6,4,
+        0,4, 1,5, 2,6, 3,7
+    };
+
+    std::vector<DebugVertex> vertices;
+    vertices.reserve(object.bodies.size() * 24);
+
+    for (const auto& body : object.bodies) {
+        for (int i = 0; i < 24; i += 2) {
+            glm::vec3 p0 = body.worldCorners[edgeIndices[i]];
+            glm::vec3 p1 = body.worldCorners[edgeIndices[i + 1]];
+            vertices.push_back({glm::vec4(p0, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec2(0.0f)});
+            vertices.push_back({glm::vec4(p1, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec2(0.0f)});
+        }
+    }
+
+    if (vertices.empty()) return;
+
+    glUseProgram(g_GpuProgramID);
+    glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(Matrix_Identity()));
+    glUniformMatrix4fv(g_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(g_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniform1i(g_object_id_uniform, objectId);
+
+    glBindVertexArray(g_DebugLineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g_DebugLineVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(DebugVertex), vertices.data());
+    glLineWidth(2.0f);
+    glDrawArrays(GL_LINES, 0, (GLsizei)vertices.size());
     glBindVertexArray(0);
 }
 

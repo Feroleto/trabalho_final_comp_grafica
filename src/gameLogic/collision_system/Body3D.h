@@ -1,5 +1,7 @@
 #pragma once
+#include <string>
 #include "utilStructures.h"
+#include "../../character/animatedModel.h"
 
 struct Body3D {
     // em relação à origem do object que ela faz parte
@@ -16,7 +18,22 @@ struct Body3D {
 
     bool isActive = true;
 
+    // opcional: vinculo a um bone de um AnimatedModel
+    std::string boneName;
+    AnimatedModel* boneModel = nullptr;
+
     Body3D(float width, float height, float depth, glm::vec3 offsetPos = {0,0,0}, glm::vec3 offsetRot = {0,0,0}) {
+        localTransform.position = offsetPos;
+        localTransform.rotation = offsetRot;
+        localTransform.scale = {width, height, depth};
+        isActive = true;
+        localTransform.dirty = true;
+    }
+
+    Body3D(float width, float height, float depth,
+           const std::string& boneName,
+           AnimatedModel* boneModel, glm::vec3 offsetPos = {0,0,0}, glm::vec3 offsetRot = {0,0,0})
+        : boneName(boneName), boneModel(boneModel) {
         localTransform.position = offsetPos;
         localTransform.rotation = offsetRot;
         localTransform.scale = {width, height, depth};
@@ -26,7 +43,12 @@ struct Body3D {
 
     inline void update(const glm::mat4& parentMatrix) {
         localTransform.updateMatrix();
-        finalMatrix = parentMatrix * localTransform.modelMatrix;
+        if (boneModel && !boneName.empty()) {
+            glm::mat4 boneMat = boneModel->getBoneMatrix(boneName);
+            finalMatrix = parentMatrix * boneMat * localTransform.modelMatrix;
+        } else {
+            finalMatrix = parentMatrix * localTransform.modelMatrix;
+        }
 
         //eixos para o sat
         worldAxes[0] = normalize({

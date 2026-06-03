@@ -27,6 +27,7 @@ uniform vec4 enemy_sword_light_pos;
 #define BACKGROUND 1
 #define SWORD 2
 #define PROJECTILE 3
+#define DEBUG_BOX 4
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -144,6 +145,14 @@ void main()
         U = texcoords.x;
         V = texcoords.y;
         Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+    }
+    else if ( object_id == DEBUG_BOX )
+    {
+        Kd0 = vec3(1.0, 0.0, 0.0);
+    }
+    else
+    {
+        Kd0 = vec3(1.0, 1.0, 1.0);
     }
 
     //luz da espada
