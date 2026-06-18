@@ -22,6 +22,10 @@ struct Body3D {
     std::string boneName;
     AnimatedModel* boneModel = nullptr;
 
+    // override direto da matriz final (útil para armas/hitboxes separados)
+    bool useOverrideFinalMatrix = false;
+    glm::mat4 overrideFinalMatrix = glm::mat4(1.0f);
+
     Body3D(float width, float height, float depth, glm::vec3 offsetPos = {0,0,0}, glm::vec3 offsetRot = {0,0,0}) {
         localTransform.position = offsetPos;
         localTransform.rotation = offsetRot;
@@ -43,11 +47,15 @@ struct Body3D {
 
     inline void update(const glm::mat4& parentMatrix) {
         localTransform.updateMatrix();
-        if (boneModel && !boneName.empty()) {
-            glm::mat4 boneMat = boneModel->getBoneMatrix(boneName);
-            finalMatrix = parentMatrix * boneMat * localTransform.modelMatrix;
+        if (useOverrideFinalMatrix) {
+            finalMatrix = overrideFinalMatrix * localTransform.modelMatrix;
         } else {
-            finalMatrix = parentMatrix * localTransform.modelMatrix;
+            if (boneModel && !boneName.empty()) {
+                glm::mat4 boneMat = boneModel->getBoneMatrix(boneName);
+                finalMatrix = parentMatrix * boneMat * localTransform.modelMatrix;
+            } else {
+                finalMatrix = parentMatrix * localTransform.modelMatrix;
+            }
         }
 
         //eixos para o sat
@@ -94,5 +102,37 @@ struct Body3D {
             finalMatrix[3][1],
             finalMatrix[3][2]
         };
+    }
+
+    inline void setOverrideFinalMatrix(const glm::mat4& m) {
+        useOverrideFinalMatrix = true;
+        overrideFinalMatrix = m;
+
+        localTransform.updateMatrix();
+        // recompute cached data immediately using a mesma regra de update()
+        finalMatrix = overrideFinalMatrix * localTransform.modelMatrix;
+
+        worldAxes[0] = normalize({ finalMatrix[0][0], finalMatrix[0][1], finalMatrix[0][2] });
+        worldAxes[1] = normalize({ finalMatrix[1][0], finalMatrix[1][1], finalMatrix[1][2] });
+        worldAxes[2] = normalize({ finalMatrix[2][0], finalMatrix[2][1], finalMatrix[2][2] });
+
+        float hw = 0.5f;
+        float hh = 0.5f;
+        float hd = 0.5f;
+        glm::vec3 localCorners[8] = {
+            {-hw,-hh,-hd}, {hw,-hh,-hd}, {-hw,hh,-hd}, {hw,hh,-hd},
+            {-hw,-hh, hd}, {hw,-hh, hd}, {-hw,hh, hd}, {hw,hh, hd}
+        };
+
+        std::vector<glm::vec3> pointsForAABB;
+        for (int i = 0; i < 8; ++i) {
+            worldCorners[i] = transformPoint(finalMatrix, localCorners[i]);
+            pointsForAABB.push_back(worldCorners[i]);
+        }
+        worldAABB.update(pointsForAABB);
+    }
+
+    inline void clearOverrideFinalMatrix() {
+        useOverrideFinalMatrix = false;
     }
 };

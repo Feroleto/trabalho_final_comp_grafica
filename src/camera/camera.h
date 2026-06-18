@@ -39,12 +39,12 @@ struct LookAtCamera {
     float nearPlane = 0.1f;//positivo
     float farPlane = 100.0f;//positivo
 
-    float fov = 60.0f;
+    float fov = 50.0f;
     float aspectRatio = 4.0f / 3.0f;
 
     glm::vec3 currentSide = {1,0,0};
-    float distance = 8.0f;
-    float height = 3.0f;
+    float distance = 2.0f;
+    float height = 1.0f;
 
     glm::vec3 getViewDirection();
 

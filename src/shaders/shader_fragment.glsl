@@ -28,6 +28,7 @@ uniform vec4 enemy_sword_light_pos;
 #define SWORD 2
 #define PROJECTILE 3
 #define DEBUG_BOX 4
+#define DEBUG_BOX_SWORD 5
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -149,6 +150,10 @@ void main()
     else if ( object_id == DEBUG_BOX )
     {
         Kd0 = vec3(1.0, 0.0, 0.0);
+    }
+    else if ( object_id == DEBUG_BOX_SWORD )
+    {
+        Kd0 = vec3(0.0, 0.0, 1.0);
     }
     else
     {

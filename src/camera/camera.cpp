@@ -56,7 +56,7 @@
 
         currentSide = desiredSide;
 
-        distance = 5.0f + sqrt(((obj1.transform.position.x - obj2.transform.position.x) * (obj1.transform.position.x - obj2.transform.position.x) + 
+        distance = 1.0f + sqrt(((obj1.transform.position.x - obj2.transform.position.x) * (obj1.transform.position.x - obj2.transform.position.x) + 
                    (obj1.transform.position.z - obj2.transform.position.z) * (obj1.transform.position.z - obj2.transform.position.z))) * 1.1f;
 
         glm::vec3 goalPosition = lookat + (currentSide * distance);

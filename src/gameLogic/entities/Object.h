@@ -64,7 +64,9 @@ public:
                 addBody(Body3D(0.1f, 0.1f, 0.4f, bn, model, {0.5f, 0.8f, -0.8f}));
             }
             /*else if (bn.find("RightHand") != std::string::npos && bn.find("HandIndex") == std::string::npos) {
-                addBody(Body3D(0.16f, 0.18f, 0.16f, bn, model, {0.0f, 0.0f, 0.0f}));
+                // corpo para a espada: caixa longa e fina vinculada ao mesmo bone
+                // offset Z negativo posiciona a caixa à frente da mão no espaço do bone
+                addBody(Body3D(0.05f, 0.05f, 1.20f, bn, model, {0.0f, 0.0f, -0.60f}, {0.0f, 0.0f, 0.0f}));
             }*/
             // braço esquerdo
             /*else if (bn.find("LeftShoulder") != std::string::npos) {

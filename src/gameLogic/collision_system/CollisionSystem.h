@@ -5,7 +5,7 @@
 
 class CollisionSystem {
 public:
-    Player* player;
+    Object* player;
 
     std::vector<Object*>* objects;
     std::vector<Body3D*>* enemyAttacks;
@@ -16,13 +16,12 @@ public:
     CollisionManifold CollisionManifold;
 
 
-    CollisionSystem(Player* player,
-                    std::vector<Object*>* objects,
-                    std::vector<Body3D*>* enemyAttacks)
+    CollisionSystem(Object* player,
+                    std::vector<Object*>* objects)
     {
         this->player = player;
         this->objects = objects;
-        this->enemyAttacks = enemyAttacks;
+        //this->enemyAttacks = enemyAttacks;
 
         objectCandidates.reserve(32);
         bodyCandidates.reserve(32);

@@ -261,6 +261,7 @@ GLuint g_DebugLineVAO = 0;
 GLuint g_DebugLineVBO = 0;
 bool g_ShowDebugHitboxes = true;
 const int DEBUG_BOX = 4;
+const int DEBUG_BOX_SWORD = 5;
 
 bool isFreeCamera = false;
 
@@ -268,6 +269,8 @@ bool isFreeCamera = false;
 #include "gameLogic\inputs\input_debug.h"
 #include "gameLogic\inputs\input_system.h"
 #include "gameLogic\inputs\platform_input.h"
+
+#include "gameLogic/collision_system/CollisionSystem.h"
      ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 ////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 
@@ -348,6 +351,9 @@ Object g_TargetObject;
 
 Object g_OpponentObject;
 
+// objetos de hitbox separados para as espadas
+Object g_PlayerSwordHitbox;
+Object g_OpponentSwordHitbox;
 
 
 // posição global da espada do personagem para guiar os projeteis
@@ -446,6 +452,10 @@ int main(int argc, char* argv[])
     fflush(stdout);
     InputSystem inputSystem;
     InputDebugRenderer debugRenderer;
+
+    std::vector<Object*> objects = { &g_OpponentObject };
+
+    CollisionSystem collisionSystem(&g_PlayerObject, &objects);
     ///////////////////////////////////////////////////////////////////////DEBUG INPUTS
     ///////////////////////////////////////////////////////////////////////////DEBUG INPUTS
     printf("DEBUG: Initializing InputSystem...\n");
@@ -602,6 +612,13 @@ int main(int argc, char* argv[])
 
     // adicionando textura da espada
     g_SwordTextureID = LoadTextureImage("../../data/sword/katana_albedo.jpg");
+
+    // cria objetos de hitbox separados para as espadas (uma caixa longa e fina)
+    {
+        Body3D swordBody(-0.25f, -3.40f, -0.05f, {0, 3.0f, 0}); // width, height, depth
+        g_PlayerSwordHitbox.addBody(swordBody);
+        g_OpponentSwordHitbox.addBody(swordBody);
+    }
 
     // ===============================================================================
     // ADICIONANDO MODELO DO PROJÉTIL
@@ -798,6 +815,25 @@ int main(int argc, char* argv[])
         // atualiza posição do oponente
         /*g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY + 1.0f, g_OpponentZ};
         g_OpponentObject.transform.dirty = true;*/
+
+        if(g_CharacterCurrentAnimation == "sword_combo" || g_CharacterCurrentAnimation == "triple_slash_attack"){
+            g_PlayerSwordHitbox.bodies[0].isActive = true;
+        }
+        else {
+            g_PlayerSwordHitbox.bodies[0].isActive = false;
+        }
+
+        // Atualiza os objetos do player e do oponente para a posição atual antes
+        // de executar a detecção/correção de colisão.
+        g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+        g_PlayerObject.transform.dirty = true;
+        g_PlayerObject.update();
+
+        g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+        g_OpponentObject.transform.dirty = true;
+        g_OpponentObject.update();
+
+        collisionSystem.update();
 
         // atualizacao dos bones
         g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
@@ -1151,6 +1187,9 @@ int main(int argc, char* argv[])
         if (g_ShowDebugHitboxes) {
             DrawDebugHitboxes(g_PlayerObject, view, projection, DEBUG_BOX);
             DrawDebugHitboxes(g_OpponentObject, view, projection, DEBUG_BOX);
+            // hitboxes das espadas (separadas)
+            DrawDebugHitboxes(g_PlayerSwordHitbox, view, projection, DEBUG_BOX_SWORD);
+            DrawDebugHitboxes(g_OpponentSwordHitbox, view, projection, DEBUG_BOX_SWORD);
         }
 
         // =================================================================
@@ -1172,6 +1211,12 @@ int main(int argc, char* argv[])
                             * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
         g_CharacterSwordWorldPos = glm::vec3(swordModel[3][0], swordModel[3][1], swordModel[3][2]);
+
+        // atualiza hitbox da espada do jogador para seguir a matriz usada no desenho
+        if (!g_PlayerSwordHitbox.bodies.empty()) {
+            g_PlayerSwordHitbox.bodies[0].setOverrideFinalMatrix(swordModel);
+            g_PlayerSwordHitbox.update();
+        }
         
         glUseProgram(g_GpuProgramID);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
@@ -1205,6 +1250,12 @@ int main(int argc, char* argv[])
                             * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
         g_OpponentSwordWorldPos = glm::vec3(opponentSwordModel[3][0], opponentSwordModel[3][1], opponentSwordModel[3][2]);
+
+        // atualiza hitbox da espada do oponente para seguir a matriz usada no desenho
+        if (!g_OpponentSwordHitbox.bodies.empty()) {
+            g_OpponentSwordHitbox.bodies[0].setOverrideFinalMatrix(opponentSwordModel);
+            g_OpponentSwordHitbox.update();
+        }
         
         glUseProgram(g_GpuProgramID);
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
