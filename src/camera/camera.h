@@ -44,7 +44,7 @@ struct LookAtCamera {
 
     glm::vec3 currentSide = {1,0,0};
     float distance = 2.0f;
-    float height = 1.0f;
+    float height = 0.5f;
 
     glm::vec3 getViewDirection();
 

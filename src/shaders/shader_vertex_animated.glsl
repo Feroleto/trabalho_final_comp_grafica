@@ -10,6 +10,9 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 boneMatrices[100];
+uniform bool PlanarShadow;
+uniform vec3 shadowDir;
+uniform float shadowGroundY;
 
 out vec2 texcoords_frag;
 out vec3 normal_frag;
@@ -27,6 +30,10 @@ void main()
     vec4 skinnedNormal = boneTransform * vec4(normal, 0.0);
 
     vec4 worldPos = model * skinnedPos;
+    if (PlanarShadow) {
+        float t = (shadowGroundY - worldPos.y) / shadowDir.y;
+        worldPos.xyz += shadowDir * t;
+    }
 
     gl_Position = projection * view * worldPos;
 

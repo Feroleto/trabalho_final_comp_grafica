@@ -229,6 +229,8 @@ GLint g_bbox_max_uniform;
 
 GLint g_player_sword_light_pos_uniform;
 GLint g_enemy_sword_light_pos_uniform;
+GLint g_shadow_player_pos_uniform;
+GLint g_shadow_enemy_pos_uniform;
 
 // ============================================================================
 // variaveis para o segundo programa de GPU
@@ -240,6 +242,9 @@ GLint g_anim_bones_uniform;
 
 GLint g_anim_player_sword_light_pos_uniform;
 GLint g_anim_enemy_sword_light_pos_uniform;
+GLint g_anim_use_shadow_uniform;
+GLint g_anim_shadow_dir_uniform;
+GLint g_anim_shadow_ground_y_uniform;
 // ===========================================================================
 
 // Número de texturas carregadas pela função LoadTextureImage()
@@ -422,6 +427,7 @@ int main(int argc, char* argv[])
     // Pedimos para utilizar o perfil "core", isto é, utilizaremos somente as
     // funções modernas de OpenGL.
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_STENCIL_BITS, 8); // necessário para sombra planar com stencil///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
@@ -455,7 +461,7 @@ int main(int argc, char* argv[])
 
     std::vector<Object*> objects = { &g_OpponentObject };
 
-    CollisionSystem collisionSystem(&g_PlayerObject, &objects);
+    CollisionSystem collisionSystem(&g_PlayerObject, &objects, &g_PlayerSwordHitbox);
     ///////////////////////////////////////////////////////////////////////DEBUG INPUTS
     ///////////////////////////////////////////////////////////////////////////DEBUG INPUTS
     printf("DEBUG: Initializing InputSystem...\n");
@@ -521,6 +527,9 @@ int main(int argc, char* argv[])
 
     g_anim_player_sword_light_pos_uniform = glGetUniformLocation(g_AnimatedProgramID, "player_sword_light_pos");
     g_anim_enemy_sword_light_pos_uniform = glGetUniformLocation(g_AnimatedProgramID, "enemy_sword_light_pos");
+    g_anim_use_shadow_uniform = glGetUniformLocation(g_AnimatedProgramID, "PlanarShadow");
+    g_anim_shadow_dir_uniform = glGetUniformLocation(g_AnimatedProgramID, "shadowDir");
+    g_anim_shadow_ground_y_uniform = glGetUniformLocation(g_AnimatedProgramID, "shadowGroundY");
 
     // ===============================================================================
     // CARREGANDO SHADERS DO HUD (barra de vida)
@@ -767,7 +776,8 @@ int main(int argc, char* argv[])
         
         // animação da tecla "I"
         if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_CharacterForcedAnimationEnd) {
-            float dur = g_Character.getAnimationDuration("sword_combo");
+            //float dur = g_Character.getAnimationDuration("sword_combo");
+            float dur = 0.7f;
             if (dur <= 0.0f) dur = 1.0f; // fallback
 
             // salva posição inicial do personagem
@@ -775,7 +785,7 @@ int main(int argc, char* argv[])
             g_CharacterStartZ = g_CharacterZ;
 
             g_CharacterCurrentAnimation = "sword_combo";
-            g_CharacterAnimationTime = 0.0f;
+            g_CharacterAnimationTime = 0.9f;
             g_CharacterForcedAnimationEnd = currentTime + dur;
             //printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_CharacterForcedAnimationEnd, currentTime); fflush(stdout);
         }
@@ -833,7 +843,11 @@ int main(int argc, char* argv[])
         g_OpponentObject.transform.dirty = true;
         g_OpponentObject.update();
 
-        collisionSystem.update();
+        if(collisionSystem.update()){
+                // 
+                g_OpponentHP -= 1.0f; // Dano de exemplo
+                g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+        }
 
         // atualizacao dos bones
         g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
@@ -949,7 +963,8 @@ int main(int argc, char* argv[])
 
         // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
         // e também resetamos todos os pixels do Z-buffer (depth buffer).
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // reseta o stencil para a sombra no chão
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
         // os shaders de vértice e fragmentos).
@@ -965,6 +980,15 @@ int main(int argc, char* argv[])
                     g_OpponentSwordWorldPos.y, 
                     g_OpponentSwordWorldPos.z, 1.0f);
 
+        glUniform3f(g_shadow_player_pos_uniform,
+                    g_CharacterX,
+                    g_CharacterY,
+                    g_CharacterZ);
+
+        glUniform3f(g_shadow_enemy_pos_uniform,
+                    g_OpponentX,
+                    g_OpponentY,
+                    g_OpponentZ);
 
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
@@ -1134,6 +1158,30 @@ int main(int argc, char* argv[])
 
         glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
 
+        // desenha sombra planar do personagem no chao
+        glUniform1i(g_anim_use_shadow_uniform, 1);
+        glUniform3f(g_anim_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_anim_shadow_ground_y_uniform, -1.0f);
+        // stencil: cada pixel da sombra só é pintado uma vez (evita acumulo de alpha)
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        // polygon offset: evita z-fighting com o chão
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+        glDisable(GL_CULL_FACE); // sombra achatada inverte normais — desliga culling
+        g_Character.draw();
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_STENCIL_TEST);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glUniform1i(g_anim_use_shadow_uniform, 0);
+
         // faz o desenho do modelo
         g_Character.draw();
 
@@ -1177,6 +1225,29 @@ int main(int argc, char* argv[])
                         glm::value_ptr(g_Opponent.boneMatrices[0]));
 
         glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
+
+        // desenha sombra planar do oponente no chão
+        glUniform1i(g_anim_use_shadow_uniform, 1);
+        glUniform3f(g_anim_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_anim_shadow_ground_y_uniform, -1.0f);
+        // stencil zerado, cada pixel pintado uma vez por personagem
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+        glDisable(GL_CULL_FACE);
+        g_Opponent.draw();
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_STENCIL_TEST);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glUniform1i(g_anim_use_shadow_uniform, 0);
 
         // faz o desenho do modelo
         g_Opponent.draw();
@@ -1596,6 +1667,8 @@ void LoadShadersFromFiles()
 
     g_player_sword_light_pos_uniform = glGetUniformLocation(g_GpuProgramID, "player_sword_light_pos");
     g_enemy_sword_light_pos_uniform = glGetUniformLocation(g_GpuProgramID, "enemy_sword_light_pos");
+    g_shadow_player_pos_uniform = glGetUniformLocation(g_GpuProgramID, "shadow_player_pos");
+    g_shadow_enemy_pos_uniform = glGetUniformLocation(g_GpuProgramID, "shadow_enemy_pos");
 
     printf("DEBUG: Uniform locations obtained.\n");
     fflush(stdout);

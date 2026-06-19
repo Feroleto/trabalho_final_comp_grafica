@@ -1,0 +1,3 @@
+1. Parte dos sistemas de colisão e input vêm de um código em java de um dos alunos. Para passar este código para c++ foi utilizado IA.
+
+2. Para fazer as projeções das sombras dos personagens, foi utilizado o prompt "vamos tentar usar planar projection shadows, fazendo os personagens serem desenhados no chão de forma simplificada". A partir disso, a implementação foi baseada nos códigos e sugestões dela, com alterações no main.cpp, shader_vertex_animated.glsl e shader_fragment_animated.glsl.

@@ -78,14 +78,10 @@ inline bool testsat(Body3D& a, Body3D& b, CollisionManifold& m) {
 
     m.colliding = true;
 
-        // Garantir que a normal aponte de A para B
-        // Usamos a diferença de posições globais (que você já tem no Body3D)
-        // Como o Body3D não guarda a matriz final, o ideal é passar ela ou 
-        // recalcular a pos global aqui apenas para o sinal
-    glm::vec3 posA = transformPoint(a.localTransform.modelMatrix, {0,0,0}); // Exemplo simplificado
-        // O ideal é a.worldCorners[0..7] média ou passar a pos global
+    // Garantir que a normal aponte de A para B
+    glm::vec3 posA = transformPoint(a.localTransform.modelMatrix, {0,0,0});
         
-        // Melhor forma: usar o centro geométrico (média dos corners)
+    //
     glm::vec3 centerA = {0,0,0}, centerB = {0,0,0};
     for(int i=0; i<8; i++) { centerA = centerA + a.worldCorners[i]; centerB = centerB + b.worldCorners[i]; }
     centerA = centerA * 0.125f; centerB = centerB * 0.125f;

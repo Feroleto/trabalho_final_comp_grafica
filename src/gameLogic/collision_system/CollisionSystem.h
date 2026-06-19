@@ -6,6 +6,7 @@
 class CollisionSystem {
 public:
     Object* player;
+    Object* swordHitbox;
 
     std::vector<Object*>* objects;
     std::vector<Body3D*>* enemyAttacks;
@@ -17,17 +18,19 @@ public:
 
 
     CollisionSystem(Object* player,
-                    std::vector<Object*>* objects)
+                    std::vector<Object*>* objects,
+                    Object* swordHitbox)
     {
         this->player = player;
         this->objects = objects;
+        this->swordHitbox = swordHitbox;
         //this->enemyAttacks = enemyAttacks;
 
         objectCandidates.reserve(32);
         bodyCandidates.reserve(32);
     }
 
-    void update();
+    bool update();
 
     void insertionSort(std::vector<Object*>& objects);
     

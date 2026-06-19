@@ -6,6 +6,7 @@ in vec3 position_world_frag;
 
 uniform vec3 player_sword_light_pos;
 uniform vec3 enemy_sword_light_pos;
+uniform bool PlanarShadow;
 
 uniform sampler2D textureAlbedo;
 
@@ -13,6 +14,11 @@ out vec4 color;
 
 void main()
 {
+    if (PlanarShadow) {
+        color = vec4(0.0, 0.0, 0.0, 0.75);
+        return;
+    }
+
     vec3 lightDir = normalize(vec3(1.0, 1.0, 0.5));
     float lambert = max(0.0, dot(normalize(normal_frag), lightDir));
 
@@ -27,7 +33,6 @@ void main()
     float sword_attenuation =
         1.0 / (1.0 + 0.09 * sword_distance +
                       0.032 * sword_distance * sword_distance);
-
 
     //Luz da espada do inimigo
     vec3 enemy_sword_light_vec = enemy_sword_light_pos - position_world_frag;
@@ -45,16 +50,15 @@ void main()
 
     float sword_intensity = 1.0;
 
+    // texturas carregadas como GL_SRGB8 — não aplicar gamma aqui
     vec3 Kd = texture(textureAlbedo, texcoords_frag).rgb;
 
-    //Luz da espada do player
     vec3 sword_light_p =
         Kd * sword_color *
         sword_lambert *
         sword_attenuation *
         sword_intensity;
 
-    //Luz da espada do inimigo
     vec3 sword_light_e =
         Kd * enemy_sword_color *
         enemy_sword_lambert *
