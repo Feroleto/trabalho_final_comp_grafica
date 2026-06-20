@@ -140,8 +140,11 @@ void main()
     }
     else if ( object_id == BACKGROUND )
     {
-        // mexer no valor multiplicando para ajustar repetição do BACKGROUND
-        vec2 uv = vec2(position_world.x * 0.03, texcoords.y);
+        float u = 0.5 + atan(position_model.z, position_model.x) / (2.0 * M_PI);
+        float v = (position_model.y - bbox_min.y) / (bbox_max.y - bbox_min.y);
+        float repeatU = 2.0; // number of horizontal repetitions
+        vec2 uv = vec2(u * repeatU, v);
+
         Kd0 = texture(TextureImage1, uv).rgb;
     }
     else if ( object_id == SWORD)
