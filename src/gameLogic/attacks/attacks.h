@@ -24,8 +24,8 @@ struct Projectile {
 };
 
 
-void spawnBezierProjectiles(Object* attacker, Object* target, Projectile* proj1, Projectile* proj2);
+void spawnBezierProjectiles(Object* attacker, Object* target, Projectile* proj1/* Projectile* proj2*/);
 
 glm::vec3 calculateBezier(const BezierCurve& curve, float t);
 
-void updateBezier(Attack* attack, Projectile* proj1, Projectile* proj2);
+void updateBezier(Attack* attack, Projectile* proj1/* Projectile* proj2*/);

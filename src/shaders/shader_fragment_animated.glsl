@@ -15,7 +15,7 @@ out vec4 color;
 void main()
 {
     if (PlanarShadow) {
-        color = vec4(0.0, 0.0, 0.0, 0.75);
+        color = vec4(0.05, 0.1, 0.0, 0.9);
         return;
     }
 

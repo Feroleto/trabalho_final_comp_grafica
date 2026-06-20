@@ -56,11 +56,11 @@ class Player : public Character {
 
         if(actionIntention == PlayerAction::FIREBALL) {
             if(!projectiles[0].isActive && !projectiles[1].isActive) {
-                spawnBezierProjectiles(this, enemyObject, &projectiles[0], &projectiles[1]);
+                spawnBezierProjectiles(this, enemyObject, &projectiles[0]);
             }
         }
 
-        updateBezier(nullptr, &projectiles[0], &projectiles[1]);
+        updateBezier(nullptr, &projectiles[0]);
 
         Character::update();
     }
