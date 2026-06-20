@@ -558,7 +558,7 @@ int main(int argc, char* argv[])
     fflush(stdout);
 
     // adicionando textura para o fundo
-    g_BackgroundTextureID = LoadTextureImage("../../data/ambient/background_texture.jpg"); // TextureImage1
+    g_BackgroundTextureID = LoadTextureImage("../../data/ambient/skydome_texture.png"); // TextureImage1
     printf("DEBUG: Texture for background loaded successfully.\n");
     fflush(stdout);
 
@@ -570,6 +570,16 @@ int main(int argc, char* argv[])
     BuildTrianglesAndAddToVirtualScene(&planemodel);
     printf("DEBUG: Plane model loaded successfully.\n");
     fflush(stdout);
+
+    // carregando objeto do skydome
+    printf("DEBUG: Loading skydome model...\n");
+    fflush(stdout);
+    ObjModel skydomeModel("../../data/ambient/skydome.obj");
+    ComputeNormals(&skydomeModel);
+    BuildTrianglesAndAddToVirtualScene(&skydomeModel);
+    printf("DEBUG: Skydome model loaded successfully.\n");
+    fflush(stdout);
+
 
     // ==============================================================================
     // ADICIONANDO MODELO DO YOSHIMITSU
@@ -1079,6 +1089,7 @@ int main(int argc, char* argv[])
         #define BACKGROUND 1
         #define SWORD 2
         #define PROJECTILE 3
+        #define SKYDOME 4
 
         // plano do chão
         glActiveTexture(GL_TEXTURE0);
@@ -1091,19 +1102,25 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
 
-        // ---------------------------
-        // plano do fundo
+        // =================================================================
+        // BACKGROUND (skydome)
         glActiveTexture(GL_TEXTURE0 + 1);
         glBindTexture(GL_TEXTURE_2D, g_BackgroundTextureID);
-        
-        // mesmo plano do chao (plane.obj), mas rotacionado 90 graus para ficar em pé
-        model = Matrix_Translate(g_CharacterX, 5.7f, /*g_CharacterZ*/ -10.0f)
-              * Matrix_Rotate_X(3.141592 / 2.0f)
-              * Matrix_Scale(18.0f, 1.0f, 7.0f);
-        
+
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
+
+        model = Matrix_Translate(0.0f, 13.0f, 0.0f) // O Y negativo ajusta a altura da "parede"
+              //* Matrix_Scale(100.0f, 100.0f, 100.0f);
+              * Matrix_Scale(1.0f, 1.0f, 1.0f);
+
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BACKGROUND);
-        DrawVirtualObject("the_plane");
+
+        DrawVirtualObject("Cylinder");
+
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
 
         // =================================================================
         // MODELO DO YOSHIMITSU
