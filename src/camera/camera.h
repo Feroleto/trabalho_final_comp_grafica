@@ -31,7 +31,7 @@ struct FreeCamera {
 
 
 struct LookAtCamera {
-    glm::vec3 position = glm::vec3(0.0f,0.0f,5.0f);
+    glm::vec3 position = glm::vec3(0.05f,0.0f,0.05f);
     glm::vec3 lookat= glm::vec3(0.0f,0.0f,0.0f);
     glm::vec3 view = lookat - position;
     glm::vec3 up  = glm::vec3(0.0f,1.0f,0.0f);
@@ -39,7 +39,7 @@ struct LookAtCamera {
     float nearPlane = 0.1f;//positivo
     float farPlane = 100.0f;//positivo
 
-    float fov = 50.0f;
+    float fov = 60.0f;
     float aspectRatio = 4.0f / 3.0f;
 
     glm::vec3 currentSide = {1,0,0};

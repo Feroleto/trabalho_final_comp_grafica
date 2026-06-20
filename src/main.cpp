@@ -677,6 +677,8 @@ int main(int argc, char* argv[])
     LookAtCamera camera;
     FreeCamera freeCamera;
     camera.aspectRatio = g_ScreenRatio;
+    camera.lookat = (g_PlayerObject.transform.position + g_OpponentObject.transform.position) * 0.5f;
+    camera.position = camera.lookat + camera.currentSide * 0.1f;
 
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
     glEnable(GL_DEPTH_TEST);

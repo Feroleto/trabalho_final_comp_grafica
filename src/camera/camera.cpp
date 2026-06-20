@@ -44,26 +44,36 @@
 
     void LookAtCamera::update(float delta, const Object& obj1, const Object& obj2) {
         lookat = (obj1.transform.position + obj2.transform.position) * 0.5f;
+        delta = glm::min(delta, 0.05f);
 
         glm::vec3 obj2toObj1 = normalize(obj1.transform.position - obj2.transform.position);
-
         glm::vec3 desiredSide = normalize(cross(glm::vec3(0,1,0), obj2toObj1));
 
         if(dot(currentSide, desiredSide) < 0.0f)
-        {
             desiredSide = -desiredSide;
-        }
 
         currentSide = desiredSide;
 
-        distance = 0.5f + sqrt(((obj1.transform.position.x - obj2.transform.position.x) * (obj1.transform.position.x - obj2.transform.position.x) + 
-                   (obj1.transform.position.z - obj2.transform.position.z) * (obj1.transform.position.z - obj2.transform.position.z))) * 1.1f;
+        // distância entre os personagens
+        float dist = sqrt(
+            (obj1.transform.position.x - obj2.transform.position.x) *
+            (obj1.transform.position.x - obj2.transform.position.x) +
+            (obj1.transform.position.z - obj2.transform.position.z) *
+            (obj1.transform.position.z - obj2.transform.position.z)
+        );
+
+        // câmera se afasta pouco — distância quase fixa
+        float targetDistance = 3.5f + dist * 0.15f;
+        distance += (targetDistance - distance) * 5.0f * delta;
+
+        // FOV aumenta quando os personagens se afastam — efeito Tekken
+        float targetFov = 35.0f + dist * 6.0f;
+        targetFov = glm::clamp(targetFov, 35.0f, 90.0f);
+        fov += (targetFov - fov) * 5.0f * delta;
 
         glm::vec3 goalPosition = lookat + (currentSide * distance);
-        position += (goalPosition - position) * 1.1f * delta;
+        position += (goalPosition - position) * 5.0f * delta;
         position.y = height;
-
-
     }
 
     glm::mat4 FreeCamera::getViewMatrix() {
