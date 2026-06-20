@@ -20,8 +20,25 @@ out vec4 position_model;
 out vec4 normal;
 out vec2 texcoords;
 
+uniform bool PlanarShadow;
+uniform vec3 shadowDir;
+uniform float shadowGroundY;
+
 void main()
 {
+    if (PlanarShadow) {
+        vec4 worldPos = model * model_coefficients;
+        float t = (shadowGroundY - worldPos.y) / shadowDir.y;
+        worldPos.xyz += shadowDir * t;
+        gl_Position = projection * view * worldPos;
+        position_world = worldPos;
+        position_model = model_coefficients;
+        normal = inverse(transpose(model)) * normal_coefficients;
+        normal.w = 0.0;
+        texcoords = texture_coefficients;
+        return;
+    }
+
     // A variável gl_Position define a posição final de cada vértice
     // OBRIGATORIAMENTE em "normalized device coordinates" (NDC), onde cada
     // coeficiente estará entre -1 e 1 após divisão por w.

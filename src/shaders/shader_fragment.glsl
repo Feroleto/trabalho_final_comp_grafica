@@ -44,6 +44,9 @@ uniform sampler2D TextureImage2; // SWORD
 uniform sampler2D TextureImage3; // PROJECTILE
 
 
+uniform bool PlanarShadow;////para sombra da espada
+
+
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
 
@@ -53,6 +56,12 @@ out vec4 color;
 
 void main()
 {
+
+    if (PlanarShadow) {
+        color = vec4(0.05, 0.1, 0.0, 0.9);
+        return;
+    }/////Para a sombra da espada
+
     // Obtemos a posição da câmera utilizando a inversa da matriz que define o
     // sistema de coordenadas da câmera.
     vec4 origin = vec4(0.0, 0.0, 0.0, 1.0);
@@ -178,6 +187,7 @@ void main()
     float ambient = 0.6;
 
     color.rgb = Kd0 * (ambient + lambert) + sword_light_p + sword_light_e;
+
     
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é

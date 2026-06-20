@@ -232,6 +232,10 @@ GLint g_enemy_sword_light_pos_uniform;
 GLint g_shadow_player_pos_uniform;
 GLint g_shadow_enemy_pos_uniform;
 
+GLint g_planar_shadow_uniform;//essas sao para a sombra da espada
+GLint g_planar_shadow_dir_uniform;
+GLint g_planar_shadow_ground_y_uniform;
+
 // ============================================================================
 // variaveis para o segundo programa de GPU
 GLuint g_AnimatedProgramID = 0;
@@ -860,9 +864,9 @@ int main(int argc, char* argv[])
         g_OpponentObject.update();
 
         // atualização dos projeteis
-        updateBezier(&g_SlashAttack, &g_Proj1, &g_Proj2);
-        updateBezier(&g_SlashAttack, &g_Proj2, &g_Proj2);
-        updateBezier(&g_SlashAttack, &g_Proj3, &g_Proj2);
+        updateBezier(&g_SlashAttack, &g_Proj1/* &g_Proj2*/);
+        updateBezier(&g_SlashAttack, &g_Proj2/* &g_Proj2*/);
+        updateBezier(&g_SlashAttack, &g_Proj3/* &g_Proj2*/);
         
         // ================================================================
         // verifica colisão de cada projétil com o oponente
@@ -895,7 +899,7 @@ int main(int argc, char* argv[])
             g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
             g_TargetObject.transform.dirty = true;
             
-            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1/*, &g_Proj2*/);
             g_Proj1Spawned = true;
         }
 
@@ -912,7 +916,7 @@ int main(int argc, char* argv[])
             g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
             g_TargetObject.transform.dirty = true;
             
-            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj2/*, &g_Proj2*/);
             g_Proj2Spawned = true;
         }
 
@@ -929,7 +933,7 @@ int main(int argc, char* argv[])
             g_TargetObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
             g_TargetObject.transform.dirty = true;
             
-            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj1, &g_Proj2);
+            spawnBezierProjectiles(&g_PlayerObject, &g_TargetObject, &g_Proj3/*, &g_Proj2*/);
             g_Proj3Spawned = true;
         }
 
@@ -1289,6 +1293,41 @@ int main(int argc, char* argv[])
         DrawVirtualObject("Pommel_low");
         DrawVirtualObject("Grip_low");
 
+        // sombra da espada do player
+        glUseProgram(g_GpuProgramID);
+        glUniform1i(g_planar_shadow_uniform, 1);
+        glUniform3f(g_planar_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_planar_shadow_ground_y_uniform, -1.0f);
+
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
+        glUniform1i(g_object_id_uniform, SWORD);
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
+
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_STENCIL_TEST);
+        glUniform1i(g_planar_shadow_uniform, 0);
+
         // ========================================================================
         // DESENHO DA ESPADA DO OPONENTE
 
@@ -1318,6 +1357,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
         glUniform1i(g_object_id_uniform, SWORD);
 
+
         DrawVirtualObject("ItoWrap_low");
         DrawVirtualObject("ItoWrapCup_low");
         DrawVirtualObject("RainGuard_low");
@@ -1328,76 +1368,159 @@ int main(int argc, char* argv[])
         DrawVirtualObject("Pommel_low");
         DrawVirtualObject("Grip_low");
 
+        // sombra da espada do oponente
+        glUseProgram(g_GpuProgramID);
+        glUniform1i(g_planar_shadow_uniform, 1);
+        glUniform3f(g_planar_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_planar_shadow_ground_y_uniform, -1.0f);
+
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
+
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_STENCIL_TEST);
+        glUniform1i(g_planar_shadow_uniform, 0);
+
+
         // ========================================================================
         // renderização dos projéteis
     
         // Proj1
         if (g_Proj1.isActive) {
-            //printf("DEBUG: Rendering Proj1 at position (%.2f, %.2f, %.2f)\n", g_Proj1.hitbox.getGlobalPosition().x, g_Proj1.hitbox.getGlobalPosition().y, g_Proj1.hitbox.getGlobalPosition().z);
-            printf("DEBUG: Proj1 is active\n");
             glActiveTexture(GL_TEXTURE0 + 3);
             glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
             glm::vec3 pos = g_Proj1.hitbox.getGlobalPosition();
 
-            glm::mat4 projModel;
+            glm::vec3 camDir = camera.getViewDirection();
 
-            
-            if (g_CharacterX < g_OpponentX) {
-                projModel = Matrix_Translate(pos.x, pos.y, pos.z)
-                            * Matrix_Rotate_Y(-3.141592f / 2.0f)
-                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
-            }
-            else {
-                projModel = Matrix_Translate(pos.x, pos.y, pos.z)
-                            * Matrix_Rotate_X(3.141592f)
-                            * Matrix_Rotate_Y(3.141592f / 2.0f)
-                            * Matrix_Rotate_Z(3 * 3.141592f / 4.0f)
-                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
-            }
-            
-                            
+            camDir.y = 0.0f;
+
+            if (glm::length(camDir) > 0.0001f)
+                camDir = glm::normalize(camDir);
+
+            float angle = atan2(camDir.x, camDir.z);
+
+            //ajuste da rotacao
+            angle += glm::half_pi<float>();
+
+            glm::mat4 projModel =
+                Matrix_Translate(pos.x, pos.y, pos.z)
+                * Matrix_Rotate_Y(angle)
+                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+
             glUseProgram(g_GpuProgramID);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
+
+            glUniformMatrix4fv(
+                g_model_uniform,
+                1,
+                GL_FALSE,
+                glm::value_ptr(projModel)
+            );
+
             glUniform1i(g_object_id_uniform, PROJECTILE);
+
             DrawVirtualObject("Circle");
         }
 
-        /*
+        
         // Proj2
         if (g_Proj2.isActive) {
-            printf("DEBUG: Rendering Proj2 at position (%.2f, %.2f, %.2f)\n", g_Proj2.hitbox.getGlobalPosition().x, g_Proj2.hitbox.getGlobalPosition().y, g_Proj2.hitbox.getGlobalPosition().z);
             glActiveTexture(GL_TEXTURE0 + 3);
             glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
             glm::vec3 pos = g_Proj2.hitbox.getGlobalPosition();
-            glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
-                                * Matrix_Rotate_X(3.141592f / 2.0f)
-                                * Matrix_Scale(0.5f, 0.5f, 0.5f);
-                            
+
+            glm::vec3 camDir = camera.getViewDirection();
+
+            camDir.y = 0.0f;
+
+            if (glm::length(camDir) > 0.0001f)
+                camDir = glm::normalize(camDir);
+
+            float angle = atan2(camDir.x, camDir.z);
+
+            //ajuste da rotacao
+            angle += glm::half_pi<float>();
+
+            glm::mat4 projModel =
+                Matrix_Translate(pos.x, pos.y, pos.z)
+                * Matrix_Rotate_Y(angle)
+                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+
             glUseProgram(g_GpuProgramID);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
+
+            glUniformMatrix4fv(
+                g_model_uniform,
+                1,
+                GL_FALSE,
+                glm::value_ptr(projModel)
+            );
+
             glUniform1i(g_object_id_uniform, PROJECTILE);
+
             DrawVirtualObject("Circle");
         }
 
         // Proj3
         if (g_Proj3.isActive) {
-            printf("DEBUG: Rendering Proj3 at position (%.2f, %.2f, %.2f)\n", g_Proj3.hitbox.getGlobalPosition().x, g_Proj3.hitbox.getGlobalPosition().y, g_Proj3.hitbox.getGlobalPosition().z);
             glActiveTexture(GL_TEXTURE0 + 3);
             glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
             glm::vec3 pos = g_Proj3.hitbox.getGlobalPosition();
-            glm::mat4 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
-                                * Matrix_Rotate_X(3.141592f / 2.0f)
-                                * Matrix_Scale(0.5f, 0.5f, 0.5f);
-                            
+
+            glm::vec3 camDir = camera.getViewDirection();
+
+            camDir.y = 0.0f;
+
+            if (glm::length(camDir) > 0.0001f)
+                camDir = glm::normalize(camDir);
+
+            float angle = atan2(camDir.x, camDir.z);
+
+            //ajuste da rotacao
+            angle += glm::half_pi<float>();
+
+            glm::mat4 projModel =
+                Matrix_Translate(pos.x, pos.y, pos.z)
+                * Matrix_Rotate_Y(angle)
+                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+
             glUseProgram(g_GpuProgramID);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
+
+            glUniformMatrix4fv(
+                g_model_uniform,
+                1,
+                GL_FALSE,
+                glm::value_ptr(projModel)
+            );
+
             glUniform1i(g_object_id_uniform, PROJECTILE);
+
             DrawVirtualObject("Circle");
         }
-        */
+        
 
         // ============================================================================
 
@@ -1659,6 +1782,10 @@ void LoadShadersFromFiles()
     g_shadow_player_pos_uniform = glGetUniformLocation(g_GpuProgramID, "shadow_player_pos");
     g_shadow_enemy_pos_uniform = glGetUniformLocation(g_GpuProgramID, "shadow_enemy_pos");
 
+    g_planar_shadow_uniform          = glGetUniformLocation(g_GpuProgramID, "PlanarShadow");
+    g_planar_shadow_dir_uniform      = glGetUniformLocation(g_GpuProgramID, "shadowDir");
+    g_planar_shadow_ground_y_uniform = glGetUniformLocation(g_GpuProgramID, "shadowGroundY");
+
     printf("DEBUG: Uniform locations obtained.\n");
     fflush(stdout);
 
@@ -1671,6 +1798,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1); // imagem do background
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2); // imagem da espada
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3); // imagem do projetil
+
     // ================================================================================
     glUseProgram(0);
     printf("DEBUG: LoadShadersFromFiles completed successfully.\n");
