@@ -758,8 +758,7 @@ int main(int argc, char* argv[])
             }
         }
         
-        // limitacao do personagem para nao sair do plano
-        // limita personagem ao interior do ringue
+        // limitacao de movimentaçao do personagem
         g_CharacterX = glm::clamp(g_CharacterX, -RING_HALF_X, RING_HALF_X);
         g_CharacterZ = glm::clamp(g_CharacterZ, -RING_HALF_Z, RING_HALF_Z);
         // =============================================================================
@@ -1122,9 +1121,8 @@ int main(int argc, char* argv[])
         glDepthMask(GL_FALSE);
         glDisable(GL_CULL_FACE);
 
-        model = Matrix_Translate(0.0f, 13.0f, 0.0f) // O Y negativo ajusta a altura da "parede"
-              //* Matrix_Scale(100.0f, 100.0f, 100.0f);
-              * Matrix_Scale(1.0f, 1.0f, 1.0f);
+        model = Matrix_Translate(0.0f, 20.0f, 0.0f) // O Y negativo ajusta a altura da "parede"
+              * Matrix_Scale(1.0f, 2.0f, 1.0f);
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BACKGROUND);
