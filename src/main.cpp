@@ -1342,6 +1342,7 @@ int main(int argc, char* argv[])
 
             glm::mat4 projModel;
 
+            
             if (g_CharacterX < g_OpponentX) {
                 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
                             * Matrix_Rotate_Y(-3.141592f / 2.0f)
@@ -1351,8 +1352,10 @@ int main(int argc, char* argv[])
                 projModel = Matrix_Translate(pos.x, pos.y, pos.z)
                             * Matrix_Rotate_X(3.141592f)
                             * Matrix_Rotate_Y(3.141592f / 2.0f)
+                            * Matrix_Rotate_Z(3 * 3.141592f / 4.0f)
                             * Matrix_Scale(0.3f, 0.3f, 0.3f);
             }
+            
                             
             glUseProgram(g_GpuProgramID);
             glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(projModel));
@@ -2719,4 +2722,3 @@ void PrintObjModelInfo(ObjModel* model)
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
 // vim: set spell spelllang=pt_br :
-
