@@ -796,30 +796,16 @@ int main(int argc, char* argv[])
             g_CharacterX = g_CharacterStartX;
             g_CharacterZ = g_CharacterStartZ;
         } else {
-            if (g_CharacterX < g_OpponentX){
-                if (direction == 6)
-                    g_CharacterCurrentAnimation = "walk_forward";
-                else if (direction == 4)
-                    g_CharacterCurrentAnimation = "walk_backwards";
-                else if (direction == 2)
-                    g_CharacterCurrentAnimation = "strafe_right";
-                else if (direction == 8)
-                    g_CharacterCurrentAnimation = "strafe_left";
-                else
-                    g_CharacterCurrentAnimation = "idle";
-            }
-            else {
-                if (direction == 6)
-                    g_CharacterCurrentAnimation = "walk_backwards";
-                else if (direction == 4)
-                    g_CharacterCurrentAnimation = "walk_forward";
-                else if (direction == 2)
-                    g_CharacterCurrentAnimation = "strafe_left";
-                else if (direction == 8)
-                    g_CharacterCurrentAnimation = "strafe_right";
-                else
-                    g_CharacterCurrentAnimation = "idle";
-            }
+           if (direction == 6)
+                g_CharacterCurrentAnimation = "walk_forward";
+            else if (direction == 4)
+                g_CharacterCurrentAnimation = "walk_backwards";
+            else if (direction == 2)
+                g_CharacterCurrentAnimation = "strafe_right";
+            else if (direction == 8)
+                g_CharacterCurrentAnimation = "strafe_left";
+            else
+                g_CharacterCurrentAnimation = "idle";
         }
 
         // atualiza posição do oponente
