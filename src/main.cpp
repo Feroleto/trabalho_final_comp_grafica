@@ -317,9 +317,10 @@ float g_CharacterX = 0.0f;
 float g_CharacterY = 0.2f;
 float g_CharacterZ = 0.0f;
 
-// limites de movimentacao 
-//const float PLANE_LIMIT_X = 4.0f;
-//const float PLANE_LIMIT_Z = 2.0f;
+// limites de movimentacao (ringue quadrado)
+const float RING_HALF_X = 8.0f; // metade do comprimento no eixo X
+const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
+//const float RING_THICKNESS = 0.12f; // espessura visual das bordas do ringue
 
 // velocidade de movimento
 const float MOVE_SPEED = 0.02F;
@@ -756,8 +757,9 @@ int main(int argc, char* argv[])
         }
         
         // limitacao do personagem para nao sair do plano
-        //g_CharacterX = glm::clamp(g_CharacterX, -PLANE_LIMIT_X, PLANE_LIMIT_X);
-        //g_CharacterZ = glm::clamp(g_CharacterZ, -PLANE_LIMIT_Z, PLANE_LIMIT_Z);
+        // limita personagem ao interior do ringue
+        g_CharacterX = glm::clamp(g_CharacterX, -RING_HALF_X, RING_HALF_X);
+        g_CharacterZ = glm::clamp(g_CharacterZ, -RING_HALF_Z, RING_HALF_Z);
         // =============================================================================
 
         // =============================================================================
@@ -832,6 +834,10 @@ int main(int argc, char* argv[])
         else {
             g_PlayerSwordHitbox.bodies[0].isActive = false;
         }
+
+        // Garante que o oponente também fique dentro do ringue
+        g_OpponentX = glm::clamp(g_OpponentX, -RING_HALF_X, RING_HALF_X);
+        g_OpponentZ = glm::clamp(g_OpponentZ, -RING_HALF_Z, RING_HALF_Z);
 
         // Atualiza os objetos do player e do oponente para a posição atual antes
         // de executar a detecção/correção de colisão.
@@ -1125,6 +1131,41 @@ int main(int argc, char* argv[])
 
         glEnable(GL_CULL_FACE);
         glDepthMask(GL_TRUE);
+
+        /*
+        // Desenha ringue quadrado no chão (4 bordas finas)
+        // usa o mesmo mesh do plano mas com object_id DEBUG_BOX (ver shader)
+        glm::mat4 ringModel;
+
+        // frente (+Z)
+        ringModel = Matrix_Translate(0.0f, -0.995f, RING_HALF_Z)
+              * Matrix_Scale(RING_HALF_X * 2.0f, 0.01f, RING_THICKNESS);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(ringModel));
+        glUniform1i(g_object_id_uniform, DEBUG_BOX);
+        DrawVirtualObject("the_plane");
+
+        // fundo (-Z)
+        ringModel = Matrix_Translate(0.0f, -0.995f, -RING_HALF_Z)
+              * Matrix_Scale(RING_HALF_X * 2.0f, 0.01f, RING_THICKNESS);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(ringModel));
+        glUniform1i(g_object_id_uniform, DEBUG_BOX);
+        DrawVirtualObject("the_plane");
+
+        // direita (+X)
+        ringModel = Matrix_Translate(RING_HALF_X, -0.995f, 0.0f)
+              * Matrix_Scale(RING_THICKNESS, 0.01f, RING_HALF_Z * 2.0f);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(ringModel));
+        glUniform1i(g_object_id_uniform, DEBUG_BOX);
+        DrawVirtualObject("the_plane");
+
+        // esquerda (-X)
+        ringModel = Matrix_Translate(-RING_HALF_X, -0.995f, 0.0f)
+              * Matrix_Scale(RING_THICKNESS, 0.01f, RING_HALF_Z * 2.0f);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(ringModel));
+        glUniform1i(g_object_id_uniform, DEBUG_BOX);
+        DrawVirtualObject("the_plane");
+        */
+        
 
         // =================================================================
         // MODELO DO YOSHIMITSU
