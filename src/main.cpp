@@ -324,7 +324,7 @@ const float RING_HALF_X = 8.0f; // metade do comprimento no eixo X
 const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
 
 // velocidade de movimento
-const float MOVE_SPEED = 0.02F;
+const float MOVE_SPEED = 1.2f;
 
 // root motion
 static const std::string ROOT_MOTION_BONE = "mixamorig:Hips";
@@ -456,12 +456,28 @@ void resetGame() {
     g_CharacterStartZ = g_CharacterZ;
     g_CharacterAnimationStartTime = 0.0f;
     g_CharacterAnimationTotalDur = 0.0f;
+
+    g_OpponentAnimationTime = 0.0f;
+    g_OpponentForcedAnimationEnd = 0.0f;
+    g_OpponentStartX = g_OpponentX; // Vai herdar o OPPONENT_START_X atribuído acima
+    g_OpponentStartZ = g_OpponentZ; // Vai herdar o OPPONENT_START_Z atribuído acima
+    g_OpponentAnimationStartTime = 0.0f;
+    g_OpponentAnimationTotalDur = 0.0f;
+
     g_Proj1Spawned = false;
     g_Proj2Spawned = false;
     g_Proj3Spawned = false;
     g_Proj1.isActive = false;
     g_Proj2.isActive = false;
     g_Proj3.isActive = false;
+
+    g_Proj1opponentSpawned = false;
+    g_Proj2opponentSpawned = false;
+    g_Proj3opponentSpawned = false;
+    g_Proj1opponent.isActive = false;
+    g_Proj2opponent.isActive = false;
+    g_Proj3opponent.isActive = false;
+
     if (!g_PlayerSwordHitbox.bodies.empty()) {
         g_PlayerSwordHitbox.bodies[0].isActive = false;
     }
@@ -866,8 +882,41 @@ int main(int argc, char* argv[])
                 {
                     movement = glm::normalize(movement);
 
-                    g_CharacterX += movement.x * MOVE_SPEED;
-                    g_CharacterZ += movement.z * MOVE_SPEED;
+                    g_CharacterX += movement.x * MOVE_SPEED * deltaTime;
+                    g_CharacterZ += movement.z * MOVE_SPEED * deltaTime;
+                }
+            }
+
+            if(OpponentAi){
+                if (currentTime < g_OpponentForcedAnimationEnd) {
+                    // root motion do ataque: usa apenas o deslocamento do Hips e não soma
+                    // a translação interna da animação com a movimentação do personagem.
+                    float prevAnimTime = glm::max(0.0f, g_OpponentAnimationTime - deltaTime);
+                    glm::vec3 prevRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
+                    glm::vec3 currRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, g_OpponentAnimationTime);
+                    float deltaZ = currRootPos.z - prevRootPos.z;
+                    g_OpponentX = g_OpponentStartX + deltaZ * ROOT_MOTION_SCALE;
+                    g_OpponentZ = g_OpponentStartZ;
+                }
+                else{
+                    updateOpponentIA(deltaTime,
+                                    currentTime,
+                                    g_OpponentForcedAnimationEnd,
+                                    g_OpponentX, g_OpponentY, g_OpponentZ,
+                                    g_OpponentAnimationTime,
+                                    g_OpponentAnimationStartTime,
+                                    g_OpponentStartX, g_OpponentStartZ,
+                                    g_OpponentCurrentAnimation,
+                                    g_Proj1opponentSpawned,
+                                    g_Proj2opponentSpawned,
+                                    g_Proj3opponentSpawned,
+                                    g_CharacterX, g_CharacterY, g_CharacterZ,
+                                    g_Opponent);
+                }
+            }
+            else {
+                if (currentTime > g_OpponentForcedAnimationEnd) {
+                    g_OpponentCurrentAnimation = "idle";
                 }
             }
 
@@ -1042,21 +1091,20 @@ int main(int argc, char* argv[])
 
         if(collisionSystem.update()){
             g_OpponentHP -= 1.0f; // Dano de exemplo
-            /*
+
             float dur = g_Opponent.getAnimationDuration("damage_taken");
             if (dur <= 0.0f) dur = 1.0f;
 
             g_OpponentCurrentAnimation = "damage_taken";
-            g_CharacterAnimationTime = dur;
-            g_CharacterForcedAnimationEnd = currentTime + dur;
+            g_OpponentAnimationTime = dur;
+            g_OpponentForcedAnimationEnd = currentTime + dur;
                     
-            */
             g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
         }
 
         // atualizacao dos bones
         g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
-        g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
+        g_Opponent.update(g_OpponentAnimationTime, g_OpponentCurrentAnimation);
 
         float directionToOpponent = atan2(
             g_OpponentX - g_CharacterX,
@@ -1088,8 +1136,18 @@ int main(int argc, char* argv[])
         auto checkProjHit = [&](Projectile& proj) {
             if (!proj.isActive) return;
             if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
-                g_OpponentHP -= 10.0f; // dano por projétil
-                //g_OpponentCurrentAnimation = "damage_taken";
+                g_OpponentHP -= 30.0f; // dano por projétil
+                
+                float dur = g_Opponent.getAnimationDuration("damage_taken");
+                if (dur <= 0.0f) dur = 1.0f;
+
+                g_OpponentCurrentAnimation = "damage_taken";
+                g_OpponentAnimationTime = dur;
+                g_OpponentForcedAnimationEnd = currentTime + dur;
+
+                g_OpponentStartX = g_OpponentX;
+                g_OpponentStartZ = g_OpponentZ;
+
                 g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
                 proj.isActive = false; // desativa o projétil ao acertar
             }
@@ -1203,7 +1261,7 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
             
         model = Matrix_Translate(g_CharacterX, -1.0f, g_CharacterZ)
-            * Matrix_Scale(40.0f, 1.0f, 40.0f);
+            * Matrix_Scale(55.0f, 1.0f, 55.0f);
                 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
