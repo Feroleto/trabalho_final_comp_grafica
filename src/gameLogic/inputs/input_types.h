@@ -12,6 +12,7 @@ enum GameInput {
 
     HITBOX_DEBUG,
     CAMERA_MODE_CHANGE,
+    OPPONENT_AI,
 
     CAMERA_UP,
     CAMERA_DOWN,
