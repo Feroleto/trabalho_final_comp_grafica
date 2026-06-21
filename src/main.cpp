@@ -536,7 +536,7 @@ int main(int argc, char* argv[])
 
     std::vector<Object*> objects = { &g_OpponentObject };
 
-    CollisionSystem collisionSystem(&g_PlayerObject, &objects, &g_PlayerSwordHitbox);
+    CollisionSystem collisionSystem(&g_PlayerObject, &objects, &g_PlayerSwordHitbox, &g_OpponentSwordHitbox);
 
     bool OpponentAi = false;
     ///////////////////////////////////////////////////////////////////////DEBUG INPUTS

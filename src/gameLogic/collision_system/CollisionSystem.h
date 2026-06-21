@@ -31,7 +31,7 @@ public:
         bodyCandidates.reserve(32);
     }
 
-    bool update();
+    int update();
 
     void insertionSort(std::vector<Object*>& objects);
     

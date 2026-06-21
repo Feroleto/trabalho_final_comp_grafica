@@ -116,7 +116,7 @@ void main()
             0.09 * enemy_sword_distance +
             0.032 * enemy_sword_distance * enemy_sword_distance);
 
-    float sword_intensity = 3.0;
+    float sword_intensity = 2.0;
 
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);

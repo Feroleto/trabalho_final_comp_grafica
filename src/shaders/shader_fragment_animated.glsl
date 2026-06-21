@@ -48,7 +48,7 @@ void main()
         1.0 / (1.0 + 0.09 * enemy_sword_distance +
                       0.032 * enemy_sword_distance * enemy_sword_distance);
 
-    float sword_intensity = 1.0;
+    float sword_intensity = 0.5;
 
     // texturas carregadas como GL_SRGB8 — não aplicar gamma aqui
     vec3 Kd = texture(textureAlbedo, texcoords_frag).rgb;
