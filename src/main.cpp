@@ -401,7 +401,6 @@ glm::mat4 g_OpponentSwordModel = glm::mat4(1.0f);
 // VARIÁVEIS PARA BARRA DE VIDA
 float g_CharacterHP = 100.0f;
 float g_OpponentHP = 100.0f;
-//float g_OpponentHP = 1.0f;
 const float MAX_HP = 100.0f;
 
 // inicialização das posições para reiniciar o jogo
@@ -483,8 +482,6 @@ void resetGame() {
     }
     g_GameOver = false;
     g_PlayerWon = false;
-
-    
 }
 
 int main(int argc, char* argv[])
@@ -919,34 +916,6 @@ int main(int argc, char* argv[])
                     g_OpponentCurrentAnimation = "idle";
                 }
             }
-
-            if(OpponentAi){
-                if (currentTime < g_OpponentForcedAnimationEnd) {
-                    // root motion do ataque: usa apenas o deslocamento do Hips e não soma
-                    // a translação interna da animação com a movimentação do personagem.
-                    float prevAnimTime = glm::max(0.0f, g_OpponentAnimationTime - deltaTime);
-                    glm::vec3 prevRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
-                    glm::vec3 currRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, g_OpponentAnimationTime);
-                    float deltaZ = currRootPos.z - prevRootPos.z;
-                    g_OpponentX = g_OpponentStartX + deltaZ * ROOT_MOTION_SCALE;
-                    g_OpponentZ = g_OpponentStartZ;
-                }
-                else{
-                    updateOpponentIA(deltaTime,
-                                    currentTime,
-                                    g_OpponentForcedAnimationEnd,
-                                    g_OpponentX, g_OpponentY, g_OpponentZ,
-                                    g_OpponentAnimationTime,
-                                    g_OpponentAnimationStartTime,
-                                    g_OpponentStartX, g_OpponentStartZ,
-                                    g_OpponentCurrentAnimation,
-                                    g_Proj1opponentSpawned,
-                                    g_Proj2opponentSpawned,
-                                    g_Proj3opponentSpawned,
-                                    g_CharacterX, g_CharacterY, g_CharacterZ,
-                                    g_Opponent);
-                }
-            }
         
             // limitacao de movimentaçao do personagem
             g_CharacterX = glm::clamp(g_CharacterX, -RING_HALF_X, RING_HALF_X);
@@ -1090,7 +1059,7 @@ int main(int argc, char* argv[])
         g_OpponentObject.update();
 
         if(collisionSystem.update()){
-            g_OpponentHP -= 1.0f; // Dano de exemplo
+            g_OpponentHP -= 10.0f; // Dano de exemplo
 
             float dur = g_Opponent.getAnimationDuration("damage_taken");
             if (dur <= 0.0f) dur = 1.0f;
@@ -1136,7 +1105,7 @@ int main(int argc, char* argv[])
         auto checkProjHit = [&](Projectile& proj) {
             if (!proj.isActive) return;
             if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
-                g_OpponentHP -= 30.0f; // dano por projétil
+                g_OpponentHP -= 10.0f; // dano por projétil
                 
                 float dur = g_Opponent.getAnimationDuration("damage_taken");
                 if (dur <= 0.0f) dur = 1.0f;
