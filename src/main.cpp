@@ -324,8 +324,7 @@ const float RING_HALF_X = 8.0f; // metade do comprimento no eixo X
 const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
 
 // velocidade de movimento
-const float MOVE_SPEED = 3.0F;
-const float MOVE_SPEED = 1.2f;
+const float MOVE_SPEED = 2.0F;
 
 // root motion
 static const std::string ROOT_MOTION_BONE = "mixamorig:Hips";
@@ -441,7 +440,7 @@ void DrawRect2D(float x, float y, float w, float h, float r, float g, float b, f
     glEnable(GL_DEPTH_TEST);
 }
 
-void resetGame() {
+void resetGame(LookAtCamera& camera) {
     g_CharacterHP = MAX_HP;
     g_OpponentHP = MAX_HP;
     g_CharacterX = PLAYER_START_X;
@@ -483,6 +482,18 @@ void resetGame() {
     }
     g_GameOver = false;
     g_PlayerWon = false;
+
+    glm::vec3 obj2toObj1 =
+        glm::normalize(
+            glm::vec3(g_CharacterX,0,g_CharacterZ) -
+            glm::vec3(g_OpponentX,0,g_OpponentZ)
+        );
+
+    camera.currentSide =
+        glm::normalize(
+            glm::cross(glm::vec3(0,1,0), obj2toObj1)
+        );
+
 }
 
 int main(int argc, char* argv[])
@@ -790,7 +801,7 @@ int main(int argc, char* argv[])
 
         if (g_GameOver && !isFreeCamera) {
             if (g_input.isPressed(GLFW_KEY_R)) {
-                resetGame();
+                resetGame(camera);
                 camera.currentSide = glm::vec3(1,0,0);
                 camera.position = glm::vec3(0);
             }
@@ -1105,17 +1116,37 @@ int main(int argc, char* argv[])
         g_OpponentObject.transform.dirty = true;
         g_OpponentObject.update();
 
-        if(collisionSystem.update()){
-            g_OpponentHP -= 10.0f; // Dano de exemplo
+        CollisionResult collisionSystemUpdate = collisionSystem.update();
+
+        if(collisionSystemUpdate.opponentTookDamage){
+            g_OpponentHP -= 2.0f; // Dano de exemplo
 
             float dur = g_Opponent.getAnimationDuration("damage_taken");
             if (dur <= 0.0f) dur = 1.0f;
 
             g_OpponentCurrentAnimation = "damage_taken";
-            g_OpponentAnimationTime = dur;
+            g_OpponentAnimationTime = 0.0f;
             g_OpponentForcedAnimationEnd = currentTime + dur;
+
+            g_OpponentStartX = g_OpponentX;
+            g_OpponentStartZ = g_OpponentZ;
                     
             g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+        }
+        if(collisionSystemUpdate.playerTookDamage){
+            g_CharacterHP -= 2.0f; // Dano de exemplo
+
+            float dur = g_Character.getAnimationDuration("damage_taken");
+            if (dur <= 0.0f) dur = 1.0f;
+
+            g_CharacterCurrentAnimation = "damage_taken";
+            g_CharacterAnimationTime = 0.0f;
+            g_CharacterForcedAnimationEnd = currentTime + dur;
+
+            g_CharacterStartX = g_CharacterX;
+            g_CharacterStartZ = g_CharacterZ;
+                    
+            g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
         }
 
         // atualizacao dos bones
@@ -1171,10 +1202,32 @@ int main(int argc, char* argv[])
                 proj.isActive = false; // desativa o projétil ao acertar
             }
         };
+        auto checkProjHitOpponent = [&](Projectile& proj) {
+            if (!proj.isActive) return;
+            if (proj.hitbox.worldAABB.intersects(g_PlayerObject.globalAABB)) {
+                g_CharacterHP -= 10.0f; // dano por projétil
+                
+                float dur = g_Character.getAnimationDuration("damage_taken");
+                if (dur <= 0.0f) dur = 1.0f;
+
+                g_CharacterCurrentAnimation = "damage_taken";
+                g_CharacterAnimationTime = dur;
+                g_CharacterForcedAnimationEnd = currentTime + dur;
+
+                g_CharacterStartX = g_CharacterX;
+                g_CharacterStartZ = g_CharacterZ;
+
+                g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
+                proj.isActive = false; // desativa o projétil ao acertar
+            }
+        };
 
         checkProjHit(g_Proj1);
         checkProjHit(g_Proj2);
         checkProjHit(g_Proj3);
+        checkProjHitOpponent(g_Proj1opponent);
+        checkProjHitOpponent(g_Proj2opponent);
+        checkProjHitOpponent(g_Proj3opponent);
 
         if (g_CharacterHP <= 0.0f || g_OpponentHP <= 0.0f) {
             g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
@@ -1679,7 +1732,7 @@ int main(int argc, char* argv[])
             glm::mat4 projModel =
                 Matrix_Translate(pos.x, pos.y, pos.z)
                 * Matrix_Rotate_Y(angle)
-                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+                * Matrix_Scale(-0.3f, -0.3f, -0.3f);
 
             glUseProgram(g_GpuProgramID);
 
@@ -1753,7 +1806,7 @@ int main(int argc, char* argv[])
             glm::mat4 projModel =
                 Matrix_Translate(pos.x, pos.y, pos.z)
                 * Matrix_Rotate_Y(angle)
-                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+                * Matrix_Scale(-0.3f, -0.3f, -0.3f);
 
             glUseProgram(g_GpuProgramID);
 
@@ -1824,7 +1877,7 @@ int main(int argc, char* argv[])
             glm::mat4 projModel =
                 Matrix_Translate(pos.x, pos.y, pos.z)
                 * Matrix_Rotate_Y(angle)
-                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+                * Matrix_Scale(-0.3f, -0.3f, -0.3f);
 
             glUseProgram(g_GpuProgramID);
 

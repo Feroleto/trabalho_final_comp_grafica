@@ -3,6 +3,11 @@
 #include "BroadPhase.h"
 #include "NarrowPhase.h"
 
+struct CollisionResult {
+    bool playerTookDamage = false;
+    bool opponentTookDamage = false;
+};
+
 class CollisionSystem {
 public:
     Object* player;
@@ -31,7 +36,7 @@ public:
         bodyCandidates.reserve(32);
     }
 
-    int update();
+    CollisionResult update();
 
     void insertionSort(std::vector<Object*>& objects);
     

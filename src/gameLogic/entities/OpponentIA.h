@@ -55,7 +55,7 @@ void updateOpponentIA(
     static float nextAttackTime = 0.0f;
 
     if (currentTime >= nextAttackTime && currentTime >= g_OpponentForcedAnimationEnd) {
-        if (distToPlayer <= 3.0f) {
+        if (distToPlayer <= 2.0f) {
             float dur = 0.7f;
 
             g_OpponentStartX = g_OpponentX;
@@ -65,7 +65,7 @@ void updateOpponentIA(
             g_OpponentAnimationTime = 0.9f;
             g_OpponentForcedAnimationEnd = currentTime + dur;
 
-            nextAttackTime = currentTime + 1.5f; //cooldown 1.5 segundos
+            nextAttackTime = currentTime + 2.5f; //cooldown 2.5 segundos
             return;
         }
         if (distToPlayer > 5.0f) {
@@ -98,7 +98,7 @@ void updateOpponentIA(
         std::uniform_int_distribution<int> r(0, 99);
         int roll = r(rng);
 
-        if (distToPlayer > 3.0f) {
+        if (distToPlayer > 2.0f) {
             //longe 70% chance de aproximar, 20% girar, 10% recuar
             if (roll < 70)       currentState = OpponentState::FORWARD;
             else if (roll < 90)  currentState = (roll % 2 == 0) ? OpponentState::LEFT
@@ -115,23 +115,23 @@ void updateOpponentIA(
 
     switch (currentState) {
         case OpponentState::FORWARD:
-            g_OpponentX += forward.x * 3.0f * deltaTime;
-            g_OpponentZ += forward.z * 3.0f * deltaTime;
+            g_OpponentX += forward.x * 2.0f * deltaTime;
+            g_OpponentZ += forward.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "walk_forward";
             break;
         case OpponentState::BACKWARD:
-            g_OpponentX -= forward.x * 3.0f * deltaTime;
-            g_OpponentZ -= forward.z * 3.0f * deltaTime;
+            g_OpponentX -= forward.x * 2.0f * deltaTime;
+            g_OpponentZ -= forward.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "walk_backwards";
             break;
         case OpponentState::LEFT:
-            g_OpponentX += right.x * 3.0f * deltaTime;
-            g_OpponentZ += right.z * 3.0f * deltaTime;
+            g_OpponentX += right.x * 2.0f * deltaTime;
+            g_OpponentZ += right.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "strafe_left";
             break;
         case OpponentState::RIGHT:
-            g_OpponentX -= right.x * 3.0f * deltaTime;
-            g_OpponentZ -= right.z * 3.0f * deltaTime;
+            g_OpponentX -= right.x * 2.0f * deltaTime;
+            g_OpponentZ -= right.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "strafe_right";
             break;
         default:

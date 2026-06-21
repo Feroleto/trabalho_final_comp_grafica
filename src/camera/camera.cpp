@@ -74,6 +74,8 @@
         glm::vec3 goalPosition = lookat + (currentSide * distance);
         position += (goalPosition - position) * 5.0f * delta;
         position.y = height;
+
+        
     }
 
     glm::mat4 FreeCamera::getViewMatrix() {

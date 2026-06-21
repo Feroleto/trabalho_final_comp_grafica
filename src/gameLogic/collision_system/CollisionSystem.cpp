@@ -5,10 +5,11 @@ extern float g_CharacterX;
 extern float g_CharacterY;
 extern float g_CharacterZ;
 
-int CollisionSystem::update() { //update vai retornar se houve colisão da espada do player com o adversário, para aplicar dano
+CollisionResult CollisionSystem::update() { //update vai retornar se houve colisão da espada do player com o adversário, para aplicar dano
     insertionSort(*objects);
     //insertionSort(*enemyAttacks);
-    int damage = 0;
+
+    CollisionResult result;
 
     if(swordHitbox->bodies[0].isActive)
     {
@@ -18,7 +19,7 @@ int CollisionSystem::update() { //update vai retornar se houve colisão da espad
         for (auto& obj : objectCandidates) {
             for (auto& body : obj->bodies) {
                 if (testsat(swordHitbox->bodies[0], body, CollisionManifold)) {
-                    damage += 1;
+                    result.opponentTookDamage = true;
                 }
             }
         }
@@ -33,7 +34,7 @@ int CollisionSystem::update() { //update vai retornar se houve colisão da espad
         for (auto& obj : objectCandidates) {
             for (auto& body : obj->bodies) {
                 if (testsat(enemyAttacks->bodies[0], body, CollisionManifold)) {
-                    damage += 2;
+                    result.playerTookDamage = true;
                 }
             }
         }
@@ -74,8 +75,8 @@ int CollisionSystem::update() { //update vai retornar se houve colisão da espad
 
         player->Object::update();
     }
-
-    return damage;
+    
+    return result;
 }
 
 void CollisionSystem::insertionSort(std::vector<Object*>& objects) {
