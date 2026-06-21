@@ -322,7 +322,6 @@ float g_CharacterZ = 0.0f;
 // limites de movimentacao (ringue quadrado)
 const float RING_HALF_X = 8.0f; // metade do comprimento no eixo X
 const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
-//const float RING_THICKNESS = 0.12f; // espessura visual das bordas do ringue
 
 // velocidade de movimento
 const float MOVE_SPEED = 1.0f;
@@ -349,6 +348,17 @@ float g_OpponentLastFrameTime = 0.0f;
 float g_OpponentForcedAnimationEnd = 0.0f;
 float g_OpponentStartX   = 0.0f;  // posição do personagem ao iniciar o golpe
 float g_OpponentStartZ   = 0.0f;
+float g_OpponentAnimationStartTime = 0.0f;
+float g_OpponentAnimationTotalDur = 0.0f;
+
+float g_OpponentAnimationTime = 0.0f;
+float g_OpponentLastFrameTime = 0.0f;
+// tempo (em segundos) até quando uma animação forçada (ataque) deve ser reproduzida
+float g_OpponentForcedAnimationEnd = 0.0f;
+
+float g_OpponentStartX   = 0.0f;  // posição do personagem ao iniciar o golpe
+float g_OpponentStartZ   = 0.0f;
+
 float g_OpponentAnimationStartTime = 0.0f;
 float g_OpponentAnimationTotalDur = 0.0f;
 
@@ -398,8 +408,8 @@ glm::mat4 g_OpponentSwordModel = glm::mat4(1.0f);
 // =============================================================================
 // VARIÁVEIS PARA BARRA DE VIDA
 float g_CharacterHP = 100.0f;
-//float g_OpponentHP = 100.0f;
-float g_OpponentHP = 1.0f;
+float g_OpponentHP = 100.0f;
+//float g_OpponentHP = 1.0f;
 const float MAX_HP = 100.0f;
 
 // inicialização das posições para reiniciar o jogo
@@ -465,6 +475,8 @@ void resetGame() {
     }
     g_GameOver = false;
     g_PlayerWon = false;
+
+    
 }
 
 int main(int argc, char* argv[])
@@ -671,6 +683,7 @@ int main(int argc, char* argv[])
     g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     g_Character.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
     g_Character.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
+    g_Character.loadAnimation("damage_taken", "../../data/Yoshimitsu_animations/damage_taken.fbx");
     
     // ===============================================================================
     // carregando animações do oponente (mesmo modelo)
@@ -685,6 +698,7 @@ int main(int argc, char* argv[])
     g_Opponent.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     g_Opponent.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
     g_Opponent.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
+    g_Opponent.loadAnimation("damage_taken", "../../data/Yoshimitsu_animations/damage_taken.fbx");
     
     // ===============================================================================
     // ADICIONANDO MODELO DA ESPADA
@@ -771,6 +785,8 @@ int main(int argc, char* argv[])
         if (g_GameOver && !isFreeCamera) {
             if (g_input.isPressed(GLFW_KEY_R)) {
                 resetGame();
+                camera.currentSide = glm::vec3(1,0,0);
+                camera.position = glm::vec3(0);
             }
             if (g_input.isPressed(GLFW_KEY_Q)) {
                 glfwSetWindowShouldClose(window, true);
@@ -803,27 +819,6 @@ int main(int argc, char* argv[])
 
                     freeCamera.update(0.0f);
                 }
-
-                printf("LookAt FOV: %.3f\n", camera.fov);
-                printf("Free FOV  : %.3f\n", freeCamera.fov);
-                /*
-                // DEBUG POSICAO CAMERA
-                printf("LookAt Pos: %.3f %.3f %.3f\n",
-                camera.position.x,
-                camera.position.y,
-                camera.position.z);
-
-                printf("Free Pos: %.3f %.3f %.3f\n",
-                freeCamera.transform.position.x,
-                freeCamera.transform.position.y,
-                freeCamera.transform.position.z);
-
-                glm::vec3 d1 = camera.getViewDirection();
-                glm::vec3 d2 = freeCamera.forward;
-
-                printf("LookAt Dir: %.3f %.3f %.3f\n", d1.x,d1.y,d1.z);
-                printf("Free Dir  : %.3f %.3f %.3f\n", d2.x,d2.y,d2.z);
-                */
             }
         }
 
@@ -831,11 +826,7 @@ int main(int argc, char* argv[])
             g_ShowDebugHitboxes = !g_ShowDebugHitboxes;
         }
 
-        if(inputSystem.mapping.justPressed(CAMERA_MODE_CHANGE)){
-            isFreeCamera = !isFreeCamera;
-        }
-
-        if(inputSystem.mapping.justPressed(OPPONENT_AI)){
+        if(inputSystem.mapping.justPressed(OPPONENT_AI) && !g_GameOver){
             OpponentAi = !OpponentAi;
         }
 
@@ -848,6 +839,7 @@ int main(int argc, char* argv[])
         if (!g_GameOver) {
             g_OpponentLastFrameTime = currentTime;
             g_CharacterAnimationTime += deltaTime;
+            g_OpponentLastFrameTime = currentTime;
             g_OpponentAnimationTime += deltaTime;
         }
 
@@ -914,12 +906,42 @@ int main(int argc, char* argv[])
                                 g_CharacterX, g_CharacterY, g_CharacterZ,
                                 g_Opponent);
             }
-        }
 
+            if(OpponentAi){
+                if (currentTime < g_OpponentForcedAnimationEnd) {
+                    // root motion do ataque: usa apenas o deslocamento do Hips e não soma
+                    // a translação interna da animação com a movimentação do personagem.
+                    float prevAnimTime = glm::max(0.0f, g_OpponentAnimationTime - deltaTime);
+                    glm::vec3 prevRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
+                    glm::vec3 currRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, g_OpponentAnimationTime);
+                    float deltaZ = currRootPos.z - prevRootPos.z;
+                    g_OpponentX = g_OpponentStartX + deltaZ * ROOT_MOTION_SCALE;
+                    g_OpponentZ = g_OpponentStartZ;
+                }
+                else{
+                    updateOpponentIA(deltaTime,
+                                    currentTime,
+                                    g_OpponentForcedAnimationEnd,
+                                    g_OpponentX, g_OpponentY, g_OpponentZ,
+                                    g_OpponentAnimationTime,
+                                    g_OpponentAnimationStartTime,
+                                    g_OpponentStartX, g_OpponentStartZ,
+                                    g_OpponentCurrentAnimation,
+                                    g_Proj1opponentSpawned,
+                                    g_Proj2opponentSpawned,
+                                    g_Proj3opponentSpawned,
+                                    g_CharacterX, g_CharacterY, g_CharacterZ,
+                                    g_Opponent);
+                }
+            }
         
             // limitacao de movimentaçao do personagem
             g_CharacterX = glm::clamp(g_CharacterX, -RING_HALF_X, RING_HALF_X);
             g_CharacterZ = glm::clamp(g_CharacterZ, -RING_HALF_Z, RING_HALF_Z);
+
+            // limitacao de movimentacao do oponente
+            g_OpponentX = glm::clamp(g_OpponentX, -RING_HALF_X, RING_HALF_X);
+            g_OpponentZ = glm::clamp(g_OpponentZ, -RING_HALF_Z, RING_HALF_Z);
             // =============================================================================
 
             // =============================================================================
@@ -952,7 +974,6 @@ int main(int argc, char* argv[])
         
             // animação da tecla "I"
             if (inputSystem.mapping.justPressed(MEDIUM_ATTACK) && currentTime >= g_CharacterForcedAnimationEnd) {
-                //float dur = g_Character.getAnimationDuration("sword_combo");
                 float dur = 0.7f;
                 if (dur <= 0.0f) dur = 1.0f; // fallback
 
@@ -963,7 +984,6 @@ int main(int argc, char* argv[])
                 g_CharacterCurrentAnimation = "sword_combo";
                 g_CharacterAnimationTime = 0.9f;
                 g_CharacterForcedAnimationEnd = currentTime + dur;
-                //printf("DEBUG: forced animation will end at %.3f (now %.3f)\n", g_CharacterForcedAnimationEnd, currentTime); fflush(stdout);
             }
 
             // se uma animação forçada está em progresso, deve manter "g_CharacterCurrentAnimation"
@@ -1125,678 +1145,641 @@ int main(int argc, char* argv[])
             }
         }
 
+        if(g_CharacterCurrentAnimation == "sword_combo" || g_CharacterCurrentAnimation == "triple_slash_attack"){
+            g_PlayerSwordHitbox.bodies[0].isActive = true;
+        }
+        else {
+            g_PlayerSwordHitbox.bodies[0].isActive = false;
+        }
 
-            // Garante que o oponente também fique dentro do ringue
-            g_OpponentX = glm::clamp(g_OpponentX, -RING_HALF_X, RING_HALF_X);
-            g_OpponentZ = glm::clamp(g_OpponentZ, -RING_HALF_Z, RING_HALF_Z);
+        // Atualiza os objetos do player e do oponente para a posição atual antes
+        // de executar a detecção/correção de colisão.
+        g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+        g_PlayerObject.transform.dirty = true;
+        g_PlayerObject.update();
 
-            // Atualiza os objetos do player e do oponente para a posição atual antes
-            // de executar a detecção/correção de colisão.
-            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
-            g_PlayerObject.transform.dirty = true;
-            g_PlayerObject.update();
+        g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+        g_OpponentObject.transform.dirty = true;
+        g_OpponentObject.update();
 
-            g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
-            g_OpponentObject.transform.dirty = true;
-            g_OpponentObject.update();
+        if(collisionSystem.update()){
+            g_OpponentHP -= 1.0f; // Dano de exemplo
+            /*
+            float dur = g_Opponent.getAnimationDuration("damage_taken");
+            if (dur <= 0.0f) dur = 1.0f;
 
-            if(collisionSystem.update()){
-                    // 
-                    g_OpponentHP -= 1.0f; // Dano de exemplo
-                    g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
-            }
+            g_OpponentCurrentAnimation = "damage_taken";
+            g_CharacterAnimationTime = dur;
+            g_CharacterForcedAnimationEnd = currentTime + dur;
+                    
+            */
+            g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+        }
 
-            // atualizacao dos bones
-            g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
-            g_Opponent.update(g_OpponentAnimationTime, g_OpponentCurrentAnimation);
+        // atualizacao dos bones
+        g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
+        g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
 
-            float directionToOpponent = atan2(
-                g_OpponentX - g_CharacterX,
-                g_OpponentZ - g_CharacterZ
-            );
-            float directionToChar = atan2(
-                g_CharacterX - g_OpponentX,
-                g_CharacterZ - g_OpponentZ
-            );
+        float directionToOpponent = atan2(
+            g_OpponentX - g_CharacterX,
+            g_OpponentZ - g_CharacterZ
+        );
+        float directionToChar = atan2(
+            g_CharacterX - g_OpponentX,
+            g_CharacterZ - g_OpponentZ
+        );
 
-            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
-            g_PlayerObject.transform.rotation = {0.0f, directionToOpponent, 0.0f};
-            g_PlayerObject.transform.dirty = true;
+        g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+        g_PlayerObject.transform.rotation = {0.0f, directionToOpponent, 0.0f};
+        g_PlayerObject.transform.dirty = true;
 
-            g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
-            g_OpponentObject.transform.rotation = {0.0f, directionToChar, 0.0f};
-            g_OpponentObject.transform.dirty = true;
+        g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+        g_OpponentObject.transform.rotation = {0.0f, directionToChar, 0.0f};
+        g_OpponentObject.transform.dirty = true;
 
-            g_PlayerObject.update();
-            g_OpponentObject.update();
+        g_PlayerObject.update();
+        g_OpponentObject.update();
 
-            // atualização dos projeteis
-            updateBezier(&g_SlashAttack, &g_Proj1);
-            updateBezier(&g_SlashAttack, &g_Proj2);
-            updateBezier(&g_SlashAttack, &g_Proj3);
+        // atualização dos projeteis
+        updateBezier(&g_SlashAttack, &g_Proj1);
+        updateBezier(&g_SlashAttack, &g_Proj2);
+        updateBezier(&g_SlashAttack, &g_Proj3);
         
-            // ================================================================
-            // verifica colisão de cada projétil com o oponente
-            auto checkProjHit = [&](Projectile& proj) {
-                if (!proj.isActive) return;
-                if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
-                    g_OpponentHP -= 10.0f; // dano por projétil
-                    g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
-                    proj.isActive = false; // desativa o projétil ao acertar
-                }
-            };
-
-            checkProjHit(g_Proj1);
-            checkProjHit(g_Proj2);
-            checkProjHit(g_Proj3);
-
-            if (g_CharacterHP <= 0.0f || g_OpponentHP <= 0.0f) {
-                g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
+        // ================================================================
+        // verifica colisão de cada projétil com o oponente
+        auto checkProjHit = [&](Projectile& proj) {
+            if (!proj.isActive) return;
+            if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
+                g_OpponentHP -= 10.0f; // dano por projétil
+                //g_OpponentCurrentAnimation = "damage_taken";
                 g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
-                g_GameOver = true;
-                g_PlayerWon = (g_OpponentHP <= 0.0f && g_CharacterHP > 0.0f);
+                proj.isActive = false; // desativa o projétil ao acertar
             }
+        };
 
-            // =============================================================================
+        checkProjHit(g_Proj1);
+        checkProjHit(g_Proj2);
+        checkProjHit(g_Proj3);
 
-            //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
+        if (g_CharacterHP <= 0.0f || g_OpponentHP <= 0.0f) {
+            g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
+            g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+            g_GameOver = true;
+            g_PlayerWon = (g_OpponentHP <= 0.0f && g_CharacterHP > 0.0f);
+        }
 
-            // Aqui executamos as operações de renderização
+        // =============================================================================
 
-            // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
-            // definida como coeficientes RGBA: Red, Green, Blue, Alpha; isto é:
-            // Vermelho, Verde, Azul, Alpha (valor de transparência).
-            // Conversaremos sobre sistemas de cores nas aulas de Modelos de Iluminação.
-            //
-            //           R     G     B     A
-            glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
+        //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
 
-            // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
-            // e também resetamos todos os pixels do Z-buffer (depth buffer).
-            // reseta o stencil para a sombra no chão
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        // Aqui executamos as operações de renderização
 
-            // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
-            // os shaders de vértice e fragmentos).
-            glUseProgram(g_GpuProgramID);
+        // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
+        // definida como coeficientes RGBA: Red, Green, Blue, Alpha; isto é:
+        // Vermelho, Verde, Azul, Alpha (valor de transparência).
+        // Conversaremos sobre sistemas de cores nas aulas de Modelos de Iluminação.
+        //
+        //           R     G     B     A
+        glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
 
-            glUniform4f(g_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação do cenário
-                        g_CharacterSwordWorldPos.x, 
-                        g_CharacterSwordWorldPos.y, 
-                        g_CharacterSwordWorldPos.z, 1.0f);
+        // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
+        // e também resetamos todos os pixels do Z-buffer (depth buffer).
+        // reseta o stencil para a sombra no chão
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-            glUniform4f(g_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação do cenário
-                        g_OpponentSwordWorldPos.x, 
-                        g_OpponentSwordWorldPos.y, 
-                        g_OpponentSwordWorldPos.z, 1.0f);
+        // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
+        // os shaders de vértice e fragmentos).
+        glUseProgram(g_GpuProgramID);
 
-            glUniform3f(g_shadow_player_pos_uniform,
-                        g_CharacterX,
-                        g_CharacterY,
-                        g_CharacterZ);
+        glUniform4f(g_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação do cenário
+                    g_CharacterSwordWorldPos.x, 
+                    g_CharacterSwordWorldPos.y, 
+                    g_CharacterSwordWorldPos.z, 1.0f);
 
-            glUniform3f(g_shadow_enemy_pos_uniform,
-                        g_OpponentX,
-                        g_OpponentY,
-                        g_OpponentZ);
+        glUniform4f(g_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação do cenário
+                    g_OpponentSwordWorldPos.x, 
+                    g_OpponentSwordWorldPos.y, 
+                    g_OpponentSwordWorldPos.z, 1.0f);
 
-            // =========================================================================
+        glUniform3f(g_shadow_player_pos_uniform,
+                    g_CharacterX,
+                    g_CharacterY,
+                    g_CharacterZ);
 
-            camera.update(deltaTime, g_PlayerObject, g_OpponentObject);
-            if (isFreeCamera) {
-                float cameraSpeed = 3.0f * deltaTime;
-                glm::vec3 up = freeCamera.up;
-                glm::vec3 right = glm::normalize(glm::cross(freeCamera.forward, up));
-                glm::vec3 groundForward = glm::normalize(glm::cross(up, right));
+        glUniform3f(g_shadow_enemy_pos_uniform,
+                    g_OpponentX,
+                    g_OpponentY,
+                    g_OpponentZ);
 
-                if (inputSystem.mapping.pressed(CAMERA_UP)) freeCamera.transform.position += up * cameraSpeed;
-                if (inputSystem.mapping.pressed(CAMERA_DOWN)) freeCamera.transform.position -= up * cameraSpeed;
-                if (inputSystem.mapping.pressed(CAMERA_LEFT)) freeCamera.transform.position -= right * cameraSpeed;
-                if (inputSystem.mapping.pressed(CAMERA_RIGHT)) freeCamera.transform.position += right * cameraSpeed;
-                if (inputSystem.mapping.pressed(CAMERA_FORWARD)) freeCamera.transform.position += groundForward * cameraSpeed;
-                if (inputSystem.mapping.pressed(CAMERA_BACKWARD)) freeCamera.transform.position -= groundForward * cameraSpeed;
+        // =========================================================================
 
-                freeCamera.transform.rotation.x = g_CameraPhi;
-                freeCamera.transform.rotation.y = g_CameraTheta;
-                freeCamera.update(deltaTime);
-            }
+        camera.update(deltaTime, g_PlayerObject, g_OpponentObject);
+        if (isFreeCamera) {
+            float cameraSpeed = 3.0f * deltaTime;
+            glm::vec3 up = freeCamera.up;
+            glm::vec3 right = glm::normalize(glm::cross(freeCamera.forward, up));
+            glm::vec3 groundForward = glm::normalize(glm::cross(up, right));
 
-            // Computamos a matriz "View" utilizando os parâmetros da câmera para
-            // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-            
-            glm::mat4 view = camera.getViewMatrix();
-            if (isFreeCamera) {
-                view = freeCamera.getViewMatrix();
-            }
+            if (inputSystem.mapping.pressed(CAMERA_UP)) freeCamera.transform.position += up * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_DOWN)) freeCamera.transform.position -= up * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_LEFT)) freeCamera.transform.position -= right * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_RIGHT)) freeCamera.transform.position += right * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_FORWARD)) freeCamera.transform.position += groundForward * cameraSpeed;
+            if (inputSystem.mapping.pressed(CAMERA_BACKWARD)) freeCamera.transform.position -= groundForward * cameraSpeed;
 
-            // Agora computamos a matriz de Projeção.
-            glm::mat4 projection = camera.getProjectionMatrix();
-            if (isFreeCamera) {
-                projection = freeCamera.getProjectionMatrix();
-            }
+            freeCamera.transform.rotation.x = g_CameraPhi;
+            freeCamera.transform.rotation.y = g_CameraTheta;
+            freeCamera.update(deltaTime);
+        }
 
-            /*// Note que, no sistema de coordenadas da câmera, os planos near e far
-            // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
-            float nearplane = -0.1f;  // Posição do "near plane"
-            float farplane  = -25.0f; // Posição do "far plane"
-
-            if (g_UsePerspectiveProjection)
-            {
-                // Projeção Perspectiva.
-                // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
-                float field_of_view = 3.141592 / 3.0f;
-                projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
-            }
-            else
-            {
-                // Projeção Ortográfica.
-                // Para definição dos valores l, r, b, t ("left", "right", "bottom", "top"),
-                // PARA PROJEÇÃO ORTOGRÁFICA veja slides 219-224 do documento Aula_09_Projecoes.pdf.
-                // Para simular um "zoom" ortográfico, computamos o valor de "t"
-                // utilizando a variável g_CameraDistance.
-                float t = 1.5f*g_CameraDistance/2.5f;
-                float b = -t;
-                float r = t*g_ScreenRatio;
-                float l = -r;
-                projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
-            }*/
-
-            glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
-
-            // Enviamos as matrizes "view" e "projection" para a placa de vídeo
-            // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
-            // efetivamente aplicadas em todos os pontos.
-            glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
-            glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
-
-            #define PLANE 0
-            #define BACKGROUND 1
-            #define SWORD 2
-            #define PROJECTILE 3
-            #define SKYDOME 4
-
-            // plano do chão
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
-            
-            model = Matrix_Translate(g_CharacterX, -1.0f, g_CharacterZ)
-                * Matrix_Scale(40.0f, 1.0f, 40.0f);
-                
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-            glUniform1i(g_object_id_uniform, PLANE);
-            DrawVirtualObject("the_plane");
-
-            // =================================================================
-            // BACKGROUND (skydome)
-            glActiveTexture(GL_TEXTURE0 + 1);
-            glBindTexture(GL_TEXTURE_2D, g_BackgroundTextureID);
-
-            glDepthMask(GL_FALSE);
-            glDisable(GL_CULL_FACE);
-
-            model = Matrix_Translate(0.0f, 20.0f, 0.0f) // O Y negativo ajusta a altura da "parede"
-                * Matrix_Scale(1.0f, 2.0f, 1.0f);
-
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-            glUniform1i(g_object_id_uniform, BACKGROUND);
-
-            DrawVirtualObject("Cylinder");
-
-            glEnable(GL_CULL_FACE);
-            glDepthMask(GL_TRUE);
-
-            // =================================================================
-            // MODELO DO YOSHIMITSU
-            // troca para shader animado
-            glUseProgram(g_AnimatedProgramID);
-
-            glUniform3f(g_anim_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação dos personagens
-                        g_CharacterSwordWorldPos.x, 
-                        g_CharacterSwordWorldPos.y, 
-                        g_CharacterSwordWorldPos.z);
-
-            glUniform3f(g_anim_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação dos personagens
-                        g_OpponentSwordWorldPos.x, 
-                        g_OpponentSwordWorldPos.y, 
-                        g_OpponentSwordWorldPos.z);
-
-            // envia view e projection
-            glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
-
-            directionToOpponent = atan2(
-                g_OpponentX - g_CharacterX, 
-                g_OpponentZ - g_CharacterZ
-            );
-
-            // envia matriz de modelo
-            glm::mat4 charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
-                                * Matrix_Scale(0.01f, 0.01f, 0.01f)
-                                //* Matrix_Rotate_Y(3.141592 / 2.0f);
-                                * Matrix_Rotate_Y(directionToOpponent);
-            glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(charModel));
+        // Computamos a matriz "View" utilizando os parâmetros da câmera para
+        // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         
-            // Envia as matrizes dos bones
-            glUniformMatrix4fv(g_anim_bones_uniform,
-                            (GLsizei)g_Character.boneMatrices.size(),
-                            GL_FALSE,
-                            glm::value_ptr(g_Character.boneMatrices[0]));
+        glm::mat4 view = camera.getViewMatrix();
+        if (isFreeCamera) {
+            view = freeCamera.getViewMatrix();
+        }
 
-            glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
+        // Agora computamos a matriz de Projeção.
+        glm::mat4 projection = camera.getProjectionMatrix();
+        if (isFreeCamera) {
+            projection = freeCamera.getProjectionMatrix();
+        }
 
-            // desenha sombra planar do personagem no chao
-            glUniform1i(g_anim_use_shadow_uniform, 1);
-            glUniform3f(g_anim_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
-            glUniform1f(g_anim_shadow_ground_y_uniform, -1.0f);
-            // stencil: cada pixel da sombra só é pintado uma vez (evita acumulo de alpha)
-            glEnable(GL_STENCIL_TEST);
-            glStencilFunc(GL_EQUAL, 0, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glEnable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
-            // polygon offset: evita z-fighting com o chão
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(-1.0f, -1.0f);
-            glDisable(GL_CULL_FACE); // sombra achatada inverte normais — desliga culling
-            g_Character.draw();
-            glEnable(GL_CULL_FACE);
-            glDisable(GL_POLYGON_OFFSET_FILL);
-            glDisable(GL_STENCIL_TEST);
-            glDepthMask(GL_TRUE);
-            glDisable(GL_BLEND);
-            glUniform1i(g_anim_use_shadow_uniform, 0);
+        glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
-            // faz o desenho do modelo
-            g_Character.draw();
+        // Enviamos as matrizes "view" e "projection" para a placa de vídeo
+        // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
+        // efetivamente aplicadas em todos os pontos.
+        glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
+        glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-            // volta para o shader original
-            glUseProgram(g_GpuProgramID);
+        #define PLANE 0
+        #define BACKGROUND 1
+        #define SWORD 2
+        #define PROJECTILE 3
+        #define SKYDOME 4
 
-            // =================================================================
-            // OPONENTE
-            glUseProgram(g_AnimatedProgramID);
+        // plano do chão
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
+            
+        model = Matrix_Translate(g_CharacterX, -1.0f, g_CharacterZ)
+            * Matrix_Scale(40.0f, 1.0f, 40.0f);
+                
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, PLANE);
+        DrawVirtualObject("the_plane");
 
-            glUniform3f(g_anim_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação dos personagens
-                        g_CharacterSwordWorldPos.x, 
-                        g_CharacterSwordWorldPos.y, 
-                        g_CharacterSwordWorldPos.z);
+        // =================================================================
+        // BACKGROUND (skydome)
+        glActiveTexture(GL_TEXTURE0 + 1);
+        glBindTexture(GL_TEXTURE_2D, g_BackgroundTextureID);
 
-            glUniform3f(g_anim_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação dos personagens
-                        g_OpponentSwordWorldPos.x, 
-                        g_OpponentSwordWorldPos.y, 
-                        g_OpponentSwordWorldPos.z);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
 
-            // envia view e projection
-            glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+        model = Matrix_Translate(0.0f, 20.0f, 0.0f) // O Y negativo ajusta a altura da "parede"
+            * Matrix_Scale(1.0f, 2.0f, 1.0f);
 
-            // fazendo oponente sempre olhar para o personagem
-            directionToChar = atan2(
-                g_CharacterX - g_OpponentX, 
-                g_CharacterZ - g_OpponentZ
-            );
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BACKGROUND);
 
-            // envia matriz de modelo
-            glm::mat4 opponentModel = Matrix_Translate(g_OpponentX, g_OpponentY, g_OpponentZ)
+        DrawVirtualObject("Cylinder");
+
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+
+        // =================================================================
+        // MODELO DO YOSHIMITSU
+        // troca para shader animado
+        glUseProgram(g_AnimatedProgramID);
+
+        glUniform3f(g_anim_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação dos personagens
+                    g_CharacterSwordWorldPos.x, 
+                    g_CharacterSwordWorldPos.y, 
+                    g_CharacterSwordWorldPos.z);
+
+        glUniform3f(g_anim_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação dos personagens
+                    g_OpponentSwordWorldPos.x, 
+                    g_OpponentSwordWorldPos.y, 
+                    g_OpponentSwordWorldPos.z);
+
+        // envia view e projection
+        glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+
+        directionToOpponent = atan2(
+            g_OpponentX - g_CharacterX, 
+            g_OpponentZ - g_CharacterZ
+        );
+
+        // envia matriz de modelo
+        glm::mat4 charModel = Matrix_Translate(g_CharacterX, g_CharacterY, g_CharacterZ)
+                            * Matrix_Scale(0.01f, 0.01f, 0.01f)
+                            //* Matrix_Rotate_Y(3.141592 / 2.0f);
+                            * Matrix_Rotate_Y(directionToOpponent);
+        glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(charModel));
+       
+        // Envia as matrizes dos bones
+        glUniformMatrix4fv(g_anim_bones_uniform,
+                        (GLsizei)g_Character.boneMatrices.size(),
+                        GL_FALSE,
+                        glm::value_ptr(g_Character.boneMatrices[0]));
+
+        glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
+
+        // desenha sombra planar do personagem no chao
+        glUniform1i(g_anim_use_shadow_uniform, 1);
+        glUniform3f(g_anim_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_anim_shadow_ground_y_uniform, -1.0f);
+        // stencil: cada pixel da sombra só é pintado uma vez (evita acumulo de alpha)
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        // polygon offset: evita z-fighting com o chão
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+        glDisable(GL_CULL_FACE); // sombra achatada inverte normais — desliga culling
+        g_Character.draw();
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_STENCIL_TEST);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glUniform1i(g_anim_use_shadow_uniform, 0);
+
+        // faz o desenho do modelo
+        g_Character.draw();
+
+        // volta para o shader original
+        glUseProgram(g_GpuProgramID);
+
+        // =================================================================
+        // OPONENTE
+        glUseProgram(g_AnimatedProgramID);
+
+        glUniform3f(g_anim_player_sword_light_pos_uniform, // posição da espada do personagem para o cálculo de iluminação dos personagens
+                    g_CharacterSwordWorldPos.x, 
+                    g_CharacterSwordWorldPos.y, 
+                    g_CharacterSwordWorldPos.z);
+
+        glUniform3f(g_anim_enemy_sword_light_pos_uniform, // posição da espada do oponente para o cálculo de iluminação dos personagens
+                    g_OpponentSwordWorldPos.x, 
+                    g_OpponentSwordWorldPos.y, 
+                    g_OpponentSwordWorldPos.z);
+
+        // envia view e projection
+        glUniformMatrix4fv(g_anim_view_uniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(g_anim_projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+
+        // fazendo oponente sempre olhar para o personagem
+        directionToChar = atan2(
+            g_CharacterX - g_OpponentX, 
+            g_CharacterZ - g_OpponentZ
+        );
+
+        // envia matriz de modelo
+        glm::mat4 opponentModel = Matrix_Translate(g_OpponentX, g_OpponentY, g_OpponentZ)
                                 * Matrix_Scale(0.01f, 0.01f, 0.01f)
                                 * Matrix_Rotate_Y(directionToChar);
-            glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentModel));
+        glUniformMatrix4fv(g_anim_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentModel));
             
-            // Envia as matrizes dos bones
-            glUniformMatrix4fv(g_anim_bones_uniform,
-                            (GLsizei)g_Opponent.boneMatrices.size(),
-                            GL_FALSE,
-                            glm::value_ptr(g_Opponent.boneMatrices[0]));
+        // Envia as matrizes dos bones
+        glUniformMatrix4fv(g_anim_bones_uniform,
+                        (GLsizei)g_Opponent.boneMatrices.size(),
+                        GL_FALSE,
+                        glm::value_ptr(g_Opponent.boneMatrices[0]));
 
-            glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
+        glUniform1i(glGetUniformLocation(g_AnimatedProgramID, "textureAlbedo"), 0);
 
-            // desenha sombra planar do oponente no chão
-            glUniform1i(g_anim_use_shadow_uniform, 1);
-            glUniform3f(g_anim_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
-            glUniform1f(g_anim_shadow_ground_y_uniform, -1.0f);
-            // stencil zerado, cada pixel pintado uma vez por personagem
-            glEnable(GL_STENCIL_TEST);
-            glStencilFunc(GL_EQUAL, 0, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glEnable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(-1.0f, -1.0f);
-            glDisable(GL_CULL_FACE);
-            g_Opponent.draw();
-            glEnable(GL_CULL_FACE);
-            glDisable(GL_POLYGON_OFFSET_FILL);
-            glDisable(GL_STENCIL_TEST);
-            glDepthMask(GL_TRUE);
-            glDisable(GL_BLEND);
-            glUniform1i(g_anim_use_shadow_uniform, 0);
+        // desenha sombra planar do oponente no chão
+        glUniform1i(g_anim_use_shadow_uniform, 1);
+        glUniform3f(g_anim_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_anim_shadow_ground_y_uniform, -1.0f);
+        // stencil zerado, cada pixel pintado uma vez por personagem
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+        glDisable(GL_CULL_FACE);
+        g_Opponent.draw();
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_STENCIL_TEST);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glUniform1i(g_anim_use_shadow_uniform, 0);
 
-            // faz o desenho do modelo
-            g_Opponent.draw();
+        // faz o desenho do modelo
+        g_Opponent.draw();
 
-            // volta para o shader original
-            glUseProgram(g_GpuProgramID);
+        // volta para o shader original
+        glUseProgram(g_GpuProgramID);
 
-            if (g_ShowDebugHitboxes) {
-                DrawDebugHitboxes(g_PlayerObject, view, projection, DEBUG_BOX);
-                DrawDebugHitboxes(g_OpponentObject, view, projection, DEBUG_BOX);
-                // hitboxes das espadas (separadas)
-                DrawDebugHitboxes(g_PlayerSwordHitbox, view, projection, DEBUG_BOX_SWORD);
-                DrawDebugHitboxes(g_OpponentSwordHitbox, view, projection, DEBUG_BOX_SWORD);
-            }
+        if (g_ShowDebugHitboxes) {
+            DrawDebugHitboxes(g_PlayerObject, view, projection, DEBUG_BOX);
+            DrawDebugHitboxes(g_OpponentObject, view, projection, DEBUG_BOX);
+            // hitboxes das espadas (separadas)
+            DrawDebugHitboxes(g_PlayerSwordHitbox, view, projection, DEBUG_BOX_SWORD);
+            DrawDebugHitboxes(g_OpponentSwordHitbox, view, projection, DEBUG_BOX_SWORD);
+        }
 
-            // =================================================================
-            // DESENHO DO MODELO DA ESPADA
+        // =================================================================
+        // DESENHO DO MODELO DA ESPADA
             
-            // bind da textura da espada
-            glActiveTexture(GL_TEXTURE0 + 2);
-            glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
+        // bind da textura da espada
+        glActiveTexture(GL_TEXTURE0 + 2);
+        glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
 
-            // matriz do bone da mão direita
-            glm::mat4 rightHandMatrix;
-            if (!g_GameOver) {
-                rightHandMatrix = g_Character.getBoneMatrix("mixamorig:RightHand");
-                g_CharacterRightHandMatrix = rightHandMatrix;
-            } else {
-                rightHandMatrix = g_CharacterRightHandMatrix;
-            }
+        // matriz do bone da mão direita
+        glm::mat4 rightHandMatrix;
+        if (!g_GameOver) {
+            rightHandMatrix = g_Character.getBoneMatrix("mixamorig:RightHand");
+            g_CharacterRightHandMatrix = rightHandMatrix;
+        } else {
+            rightHandMatrix = g_CharacterRightHandMatrix;
+        }
             
-            // espada segue o bone da mão direita
-            glm::mat4 swordModel = charModel * rightHandMatrix
-                                * Matrix_Translate(0.8f, 0.8f, -1.1f)
-                                * Matrix_Rotate_Y(3.141592f / 2.0f)
-                                * Matrix_Rotate_X(3.141592f / 2.0f)
-                                * Matrix_Rotate_Z(3.141592f)
-                                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+        // espada segue o bone da mão direita
+        glm::mat4 swordModel = charModel * rightHandMatrix
+                            * Matrix_Translate(0.8f, 0.8f, -1.1f)
+                            * Matrix_Rotate_Y(3.141592f / 2.0f)
+                            * Matrix_Rotate_X(3.141592f / 2.0f)
+                            * Matrix_Rotate_Z(3.141592f)
+                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
-            if (g_GameOver) {
-                // reuse cached sword model when game is over
-                swordModel = g_CharacterSwordModel;
-            } else {
-                g_CharacterSwordModel = swordModel;
-            }
-            g_CharacterSwordWorldPos = glm::vec3(swordModel[3][0], swordModel[3][1], swordModel[3][2]);
+        if (g_GameOver) {
+            // reuse cached sword model when game is over
+             swordModel = g_CharacterSwordModel;
+        } else {
+            g_CharacterSwordModel = swordModel;
+        }
+        g_CharacterSwordWorldPos = glm::vec3(swordModel[3][0], swordModel[3][1], swordModel[3][2]);
 
-            // atualiza hitbox da espada do jogador para seguir a matriz usada no desenho
-            if (!g_PlayerSwordHitbox.bodies.empty()) {
-                g_PlayerSwordHitbox.bodies[0].setOverrideFinalMatrix(swordModel);
-                g_PlayerSwordHitbox.update();
-            }
+        // atualiza hitbox da espada do jogador para seguir a matriz usada no desenho
+        if (!g_PlayerSwordHitbox.bodies.empty()) {
+            g_PlayerSwordHitbox.bodies[0].setOverrideFinalMatrix(swordModel);
+            g_PlayerSwordHitbox.update();
+        }
         
-            glUseProgram(g_GpuProgramID);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
-            glUniform1i(g_object_id_uniform, SWORD);
+        glUseProgram(g_GpuProgramID);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
+        glUniform1i(g_object_id_uniform, SWORD);
 
-            DrawVirtualObject("ItoWrap_low");
-            DrawVirtualObject("ItoWrapCup_low");
-            DrawVirtualObject("RainGuard_low");
-            DrawVirtualObject("Connectorr_low");
-            DrawVirtualObject("Blade_low");
-            DrawVirtualObject("CrossGuard_low");
-            DrawVirtualObject("ItoWrapEnd_low");
-            DrawVirtualObject("Pommel_low");
-            DrawVirtualObject("Grip_low");
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
 
-            // sombra da espada do player
-            glUseProgram(g_GpuProgramID);
-            glUniform1i(g_planar_shadow_uniform, 1);
-            glUniform3f(g_planar_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
-            glUniform1f(g_planar_shadow_ground_y_uniform, -1.0f);
+        // sombra da espada do player
+        glUseProgram(g_GpuProgramID);
+        glUniform1i(g_planar_shadow_uniform, 1);
+        glUniform3f(g_planar_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_planar_shadow_ground_y_uniform, -1.0f);
 
-            glEnable(GL_STENCIL_TEST);
-            glStencilFunc(GL_EQUAL, 0, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glDepthMask(GL_FALSE);
-            glDisable(GL_CULL_FACE);
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(-1.0f, -1.0f);
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
 
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
-            glUniform1i(g_object_id_uniform, SWORD);
-            DrawVirtualObject("ItoWrap_low");
-            DrawVirtualObject("ItoWrapCup_low");
-            DrawVirtualObject("RainGuard_low");
-            DrawVirtualObject("Connectorr_low");
-            DrawVirtualObject("Blade_low");
-            DrawVirtualObject("CrossGuard_low");
-            DrawVirtualObject("ItoWrapEnd_low");
-            DrawVirtualObject("Pommel_low");
-            DrawVirtualObject("Grip_low");
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(swordModel));
+        glUniform1i(g_object_id_uniform, SWORD);
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
 
-            glDisable(GL_POLYGON_OFFSET_FILL);
-            glEnable(GL_CULL_FACE);
-            glDepthMask(GL_TRUE);
-            glDisable(GL_BLEND);
-            glDisable(GL_STENCIL_TEST);
-            glUniform1i(g_planar_shadow_uniform, 0);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_STENCIL_TEST);
+        glUniform1i(g_planar_shadow_uniform, 0);
 
-            // ========================================================================
-            // DESENHO DA ESPADA DO OPONENTE
+        // ========================================================================
+        // DESENHO DA ESPADA DO OPONENTE
 
-            glActiveTexture(GL_TEXTURE0 + 2);
-            glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
+        glActiveTexture(GL_TEXTURE0 + 2);
+        glBindTexture(GL_TEXTURE_2D, g_SwordTextureID);
 
-            // matriz do bone da mão direita
-            glm::mat4 opponentRightHandMatrix;
-            if (!g_GameOver) {
-                opponentRightHandMatrix = g_Opponent.getBoneMatrix("mixamorig:RightHand");
-                g_OpponentRightHandMatrix = opponentRightHandMatrix;
-            } else {
-                opponentRightHandMatrix = g_OpponentRightHandMatrix;
-            }
+        // matriz do bone da mão direita
+        glm::mat4 opponentRightHandMatrix;
+        if (!g_GameOver) {
+            opponentRightHandMatrix = g_Opponent.getBoneMatrix("mixamorig:RightHand");
+            g_OpponentRightHandMatrix = opponentRightHandMatrix;
+        } else {
+            opponentRightHandMatrix = g_OpponentRightHandMatrix;
+        }
             
-            // espada segue o bone da mão direita
-            glm::mat4 opponentSwordModel = opponentModel * opponentRightHandMatrix
-                                * Matrix_Translate(0.8f, 0.8f, -1.1f)
-                                * Matrix_Rotate_Y(3.141592f / 2.0f)
-                                * Matrix_Rotate_X(3.141592f / 2.0f)
-                                * Matrix_Rotate_Z(3.141592f)
-                                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+        // espada segue o bone da mão direita
+        glm::mat4 opponentSwordModel = opponentModel * opponentRightHandMatrix
+                            * Matrix_Translate(0.8f, 0.8f, -1.1f)
+                            * Matrix_Rotate_Y(3.141592f / 2.0f)
+                            * Matrix_Rotate_X(3.141592f / 2.0f)
+                            * Matrix_Rotate_Z(3.141592f)
+                            * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
-            if (g_GameOver) {
-                opponentSwordModel = g_OpponentSwordModel;
-            } else {
-                g_OpponentSwordModel = opponentSwordModel;
-            }
-            g_OpponentSwordWorldPos = glm::vec3(opponentSwordModel[3][0], opponentSwordModel[3][1], opponentSwordModel[3][2]);
+        if (g_GameOver) {
+            opponentSwordModel = g_OpponentSwordModel;
+        } else {
+            g_OpponentSwordModel = opponentSwordModel;
+        }
+        g_OpponentSwordWorldPos = glm::vec3(opponentSwordModel[3][0], opponentSwordModel[3][1], opponentSwordModel[3][2]);
 
-            // atualiza hitbox da espada do oponente para seguir a matriz usada no desenho
-            if (!g_OpponentSwordHitbox.bodies.empty()) {
-                g_OpponentSwordHitbox.bodies[0].setOverrideFinalMatrix(opponentSwordModel);
-                g_OpponentSwordHitbox.update();
-            }
+        // atualiza hitbox da espada do oponente para seguir a matriz usada no desenho
+        if (!g_OpponentSwordHitbox.bodies.empty()) {
+            g_OpponentSwordHitbox.bodies[0].setOverrideFinalMatrix(opponentSwordModel);
+            g_OpponentSwordHitbox.update();
+        }
         
-            glUseProgram(g_GpuProgramID);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
-            glUniform1i(g_object_id_uniform, SWORD);
+        glUseProgram(g_GpuProgramID);
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
+        glUniform1i(g_object_id_uniform, SWORD);
 
 
-            DrawVirtualObject("ItoWrap_low");
-            DrawVirtualObject("ItoWrapCup_low");
-            DrawVirtualObject("RainGuard_low");
-            DrawVirtualObject("Connectorr_low");
-            DrawVirtualObject("Blade_low");
-            DrawVirtualObject("CrossGuard_low");
-            DrawVirtualObject("ItoWrapEnd_low");
-            DrawVirtualObject("Pommel_low");
-            DrawVirtualObject("Grip_low");
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
 
-            // sombra da espada do oponente
-            glUseProgram(g_GpuProgramID);
-            glUniform1i(g_planar_shadow_uniform, 1);
-            glUniform3f(g_planar_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
-            glUniform1f(g_planar_shadow_ground_y_uniform, -1.0f);
+        // sombra da espada do oponente
+        glUseProgram(g_GpuProgramID);
+        glUniform1i(g_planar_shadow_uniform, 1);
+        glUniform3f(g_planar_shadow_dir_uniform, -0.6666667f, -0.6666667f, -0.3333333f);
+        glUniform1f(g_planar_shadow_ground_y_uniform, -1.0f);
 
-            glEnable(GL_STENCIL_TEST);
-            glStencilFunc(GL_EQUAL, 0, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glDepthMask(GL_FALSE);
-            glDisable(GL_CULL_FACE);
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(-1.0f, -1.0f);
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_EQUAL, 0, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
 
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
-            DrawVirtualObject("ItoWrap_low");
-            DrawVirtualObject("ItoWrapCup_low");
-            DrawVirtualObject("RainGuard_low");
-            DrawVirtualObject("Connectorr_low");
-            DrawVirtualObject("Blade_low");
-            DrawVirtualObject("CrossGuard_low");
-            DrawVirtualObject("ItoWrapEnd_low");
-            DrawVirtualObject("Pommel_low");
-            DrawVirtualObject("Grip_low");
+        glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(opponentSwordModel));
+        DrawVirtualObject("ItoWrap_low");
+        DrawVirtualObject("ItoWrapCup_low");
+        DrawVirtualObject("RainGuard_low");
+        DrawVirtualObject("Connectorr_low");
+        DrawVirtualObject("Blade_low");
+        DrawVirtualObject("CrossGuard_low");
+        DrawVirtualObject("ItoWrapEnd_low");
+        DrawVirtualObject("Pommel_low");
+        DrawVirtualObject("Grip_low");
 
-            glDisable(GL_POLYGON_OFFSET_FILL);
-            glEnable(GL_CULL_FACE);
-            glDepthMask(GL_TRUE);
-            glDisable(GL_BLEND);
-            glDisable(GL_STENCIL_TEST);
-            glUniform1i(g_planar_shadow_uniform, 0);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_STENCIL_TEST);
+        glUniform1i(g_planar_shadow_uniform, 0);
 
 
-            // ========================================================================
-            // renderização dos projéteis
+        // ========================================================================
+        // renderização dos projéteis
     
-            // Proj1
-            if (g_Proj1.isActive) {
-                glActiveTexture(GL_TEXTURE0 + 3);
-                glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+        // Proj1
+        if (g_Proj1.isActive) {
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
-                glm::vec3 pos = g_Proj1.hitbox.getGlobalPosition();
+            glm::vec3 pos = g_Proj1.hitbox.getGlobalPosition();
+            glm::vec3 camDir = camera.getViewDirection();
 
-                glm::vec3 camDir = camera.getViewDirection();
+            camDir.y = 0.0f;
 
-                camDir.y = 0.0f;
+            if (glm::length(camDir) > 0.0001f)
+                camDir = glm::normalize(camDir);
+            float angle = atan2(camDir.x, camDir.z);
 
-                if (glm::length(camDir) > 0.0001f)
-                    camDir = glm::normalize(camDir);
+            //ajuste da rotacao
+            angle += glm::half_pi<float>();
 
-                float angle = atan2(camDir.x, camDir.z);
+            glm::mat4 projModel =
+                Matrix_Translate(pos.x, pos.y, pos.z)
+                * Matrix_Rotate_Y(angle)
+                * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
-                //ajuste da rotacao
-                angle += glm::half_pi<float>();
+            glUseProgram(g_GpuProgramID);
 
-                glm::mat4 projModel =
-                    Matrix_Translate(pos.x, pos.y, pos.z)
-                    * Matrix_Rotate_Y(angle)
-                    * Matrix_Scale(0.3f, 0.3f, 0.3f);
+            glUniformMatrix4fv(
+                g_model_uniform,
+                1,
+                GL_FALSE,
+                glm::value_ptr(projModel)
+            );
 
-                glUseProgram(g_GpuProgramID);
+            glUniform1i(g_object_id_uniform, PROJECTILE);
 
-                glUniformMatrix4fv(
-                    g_model_uniform,
-                    1,
-                    GL_FALSE,
-                    glm::value_ptr(projModel)
-                );
-
-                glUniform1i(g_object_id_uniform, PROJECTILE);
-
-                DrawVirtualObject("Circle");
-            }
+            DrawVirtualObject("Circle");
+        }
 
         
-            // Proj2
-            if (g_Proj2.isActive) {
-                glActiveTexture(GL_TEXTURE0 + 3);
-                glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+        // Proj2
+        if (g_Proj2.isActive) {
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
-                glm::vec3 pos = g_Proj2.hitbox.getGlobalPosition();
+            glm::vec3 pos = g_Proj2.hitbox.getGlobalPosition();
 
-                glm::vec3 camDir = camera.getViewDirection();
+            glm::vec3 camDir = camera.getViewDirection();
 
-                camDir.y = 0.0f;
+            camDir.y = 0.0f;
 
-                if (glm::length(camDir) > 0.0001f)
-                    camDir = glm::normalize(camDir);
+            if (glm::length(camDir) > 0.0001f)
+                camDir = glm::normalize(camDir);
 
-                float angle = atan2(camDir.x, camDir.z);
+            float angle = atan2(camDir.x, camDir.z);
 
-                //ajuste da rotacao
-                angle += glm::half_pi<float>();
+            //ajuste da rotacao
+            angle += glm::half_pi<float>();
 
-                glm::mat4 projModel =
-                    Matrix_Translate(pos.x, pos.y, pos.z)
-                    * Matrix_Rotate_Y(angle)
-                    * Matrix_Scale(0.3f, 0.3f, 0.3f);
+            glm::mat4 projModel =
+                Matrix_Translate(pos.x, pos.y, pos.z)
+                * Matrix_Rotate_Y(angle)
+                * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
-                glUseProgram(g_GpuProgramID);
+            glUseProgram(g_GpuProgramID);
 
-                glUniformMatrix4fv(
-                    g_model_uniform,
-                    1,
-                    GL_FALSE,
-                    glm::value_ptr(projModel)
-                );
+            glUniformMatrix4fv(
+                g_model_uniform,
+                1,
+                GL_FALSE,
+                glm::value_ptr(projModel)
+            );
 
-                glUniform1i(g_object_id_uniform, PROJECTILE);
+            glUniform1i(g_object_id_uniform, PROJECTILE);
+            DrawVirtualObject("Circle");
+        }
 
-                DrawVirtualObject("Circle");
-            }
+        // Proj3
+        if (g_Proj3.isActive) {
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
 
-            // Proj3
-            if (g_Proj3.isActive) {
-                glActiveTexture(GL_TEXTURE0 + 3);
-                glBindTexture(GL_TEXTURE_2D, g_ProjectileTextureID);
+            glm::vec3 pos = g_Proj3.hitbox.getGlobalPosition();
 
-                glm::vec3 pos = g_Proj3.hitbox.getGlobalPosition();
+            glm::vec3 camDir = camera.getViewDirection();
+            camDir.y = 0.0f;
 
-                glm::vec3 camDir = camera.getViewDirection();
+            if (glm::length(camDir) > 0.0001f)
+                camDir = glm::normalize(camDir);
 
-                camDir.y = 0.0f;
+            float angle = atan2(camDir.x, camDir.z);
 
-                if (glm::length(camDir) > 0.0001f)
-                    camDir = glm::normalize(camDir);
+            //ajuste da rotacao
+            angle += glm::half_pi<float>();
 
-                float angle = atan2(camDir.x, camDir.z);
+            glm::mat4 projModel =
+                Matrix_Translate(pos.x, pos.y, pos.z)
+                * Matrix_Rotate_Y(angle)
+                * Matrix_Scale(0.3f, 0.3f, 0.3f);
 
-                //ajuste da rotacao
-                angle += glm::half_pi<float>();
+            glUseProgram(g_GpuProgramID);
 
-                glm::mat4 projModel =
-                    Matrix_Translate(pos.x, pos.y, pos.z)
-                    * Matrix_Rotate_Y(angle)
-                    * Matrix_Scale(0.3f, 0.3f, 0.3f);
+            glUniformMatrix4fv(
+                g_model_uniform,
+                1,
+                GL_FALSE,
+                glm::value_ptr(projModel)
+            );
 
-                glUseProgram(g_GpuProgramID);
+            glUniform1i(g_object_id_uniform, PROJECTILE);
 
-                glUniformMatrix4fv(
-                    g_model_uniform,
-                    1,
-                    GL_FALSE,
-                    glm::value_ptr(projModel)
-                );
-
-                glUniform1i(g_object_id_uniform, PROJECTILE);
-
-                DrawVirtualObject("Circle");
-            }
-        
-
-            // ============================================================================
-
-            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////DEBUG INPUT
-            
-            // Imprimimos na tela os ângulos de Euler que controlam a rotação do
-            // terceiro cubo.
-            //TextRendering_ShowEulerAngles(window);
-
-            // Imprimimos na informação sobre a matriz de projeção sendo utilizada.
-            //TextRendering_ShowProjection(window);
-
-            // Imprimimos na tela informação sobre o número de quadros renderizados
-            // por segundo (frames per second).
-            //TextRendering_ShowFramesPerSecond(window);
-
-        //}
+            DrawVirtualObject("Circle");
+        }
 
         // =============================================================================
         // BARRAS DE VIDA
