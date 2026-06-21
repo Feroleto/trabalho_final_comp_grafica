@@ -325,6 +325,7 @@ const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
 
 // velocidade de movimento
 const float MOVE_SPEED = 3.0F;
+const float MOVE_SPEED = 1.2f;
 
 // root motion
 static const std::string ROOT_MOTION_BONE = "mixamorig:Hips";
@@ -401,7 +402,6 @@ glm::mat4 g_OpponentSwordModel = glm::mat4(1.0f);
 // VARIÁVEIS PARA BARRA DE VIDA
 float g_CharacterHP = 100.0f;
 float g_OpponentHP = 100.0f;
-//float g_OpponentHP = 1.0f;
 const float MAX_HP = 100.0f;
 
 // inicialização das posições para reiniciar o jogo
@@ -456,25 +456,33 @@ void resetGame() {
     g_CharacterStartZ = g_CharacterZ;
     g_CharacterAnimationStartTime = 0.0f;
     g_CharacterAnimationTotalDur = 0.0f;
+
+    g_OpponentAnimationTime = 0.0f;
+    g_OpponentForcedAnimationEnd = 0.0f;
+    g_OpponentStartX = g_OpponentX; // Vai herdar o OPPONENT_START_X atribuído acima
+    g_OpponentStartZ = g_OpponentZ; // Vai herdar o OPPONENT_START_Z atribuído acima
+    g_OpponentAnimationStartTime = 0.0f;
+    g_OpponentAnimationTotalDur = 0.0f;
+
     g_Proj1Spawned = false;
     g_Proj2Spawned = false;
     g_Proj3Spawned = false;
     g_Proj1.isActive = false;
     g_Proj2.isActive = false;
     g_Proj3.isActive = false;
-    g_Proj1opponent.isActive = false;
-    g_Proj2opponent.isActive = false;
-    g_Proj3opponent.isActive = false;
+    
     g_Proj1opponentSpawned = false;
     g_Proj2opponentSpawned = false;
     g_Proj3opponentSpawned = false;
+    g_Proj1opponent.isActive = false;
+    g_Proj2opponent.isActive = false;
+    g_Proj3opponent.isActive = false;
+
     if (!g_PlayerSwordHitbox.bodies.empty()) {
         g_PlayerSwordHitbox.bodies[0].isActive = false;
     }
     g_GameOver = false;
     g_PlayerWon = false;
-
-    
 }
 
 int main(int argc, char* argv[])
@@ -874,6 +882,7 @@ int main(int argc, char* argv[])
 
                     g_CharacterX += movement.x * MOVE_SPEED * deltaTime;
                     g_CharacterZ += movement.z * MOVE_SPEED * deltaTime;
+                    
                 }
             }
 
@@ -902,6 +911,11 @@ int main(int argc, char* argv[])
                                     g_Proj3opponentSpawned,
                                     g_CharacterX, g_CharacterY, g_CharacterZ,
                                     g_Opponent);
+                }
+            }
+            else {
+                if (currentTime > g_OpponentForcedAnimationEnd) {
+                    g_OpponentCurrentAnimation = "idle";
                 }
             }
         
@@ -1092,16 +1106,15 @@ int main(int argc, char* argv[])
         g_OpponentObject.update();
 
         if(collisionSystem.update()){
-            g_OpponentHP -= 1.0f; // Dano de exemplo
-            /*
+            g_OpponentHP -= 10.0f; // Dano de exemplo
+
             float dur = g_Opponent.getAnimationDuration("damage_taken");
             if (dur <= 0.0f) dur = 1.0f;
 
             g_OpponentCurrentAnimation = "damage_taken";
-            g_CharacterAnimationTime = dur;
-            g_CharacterForcedAnimationEnd = currentTime + dur;
+            g_OpponentAnimationTime = dur;
+            g_OpponentForcedAnimationEnd = currentTime + dur;
                     
-            */
             g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
         }
 
@@ -1143,7 +1156,17 @@ int main(int argc, char* argv[])
             if (!proj.isActive) return;
             if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
                 g_OpponentHP -= 10.0f; // dano por projétil
-                //g_OpponentCurrentAnimation = "damage_taken";
+                
+                float dur = g_Opponent.getAnimationDuration("damage_taken");
+                if (dur <= 0.0f) dur = 1.0f;
+
+                g_OpponentCurrentAnimation = "damage_taken";
+                g_OpponentAnimationTime = dur;
+                g_OpponentForcedAnimationEnd = currentTime + dur;
+
+                g_OpponentStartX = g_OpponentX;
+                g_OpponentStartZ = g_OpponentZ;
+
                 g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
                 proj.isActive = false; // desativa o projétil ao acertar
             }
@@ -1257,7 +1280,7 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, g_FloorTextureID);
             
         model = Matrix_Translate(g_CharacterX, -1.0f, g_CharacterZ)
-            * Matrix_Scale(40.0f, 1.0f, 40.0f);
+            * Matrix_Scale(55.0f, 1.0f, 55.0f);
                 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
