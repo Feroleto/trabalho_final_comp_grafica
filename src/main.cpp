@@ -749,7 +749,7 @@ int main(int argc, char* argv[])
         //////////////////////////////////////////////////////////////////////////////DEBUG INPUTS
         inputSystem.update(); // Atualiza o sistema de inputs, lendo o estado do teclado e mouse
 
-        if (g_GameOver) {
+        if (g_GameOver && !isFreeCamera) {
             if (g_input.isPressed(GLFW_KEY_R)) {
                 resetGame();
             }
@@ -758,13 +758,64 @@ int main(int argc, char* argv[])
             }
         }
 
+        if (g_GameOver) {
+            if(inputSystem.mapping.justPressed(CAMERA_MODE_CHANGE)){
+                isFreeCamera = !isFreeCamera;
+
+
+                if(isFreeCamera) {
+                    freeCamera.transform.position = camera.position;
+
+                    glm::vec3 dir = camera.getViewDirection();
+
+                    float pitch = asin(dir.y);
+                    float yaw = atan2(dir.x, -dir.z);
+
+                    g_CameraPhi = pitch;
+                    g_CameraTheta = yaw;
+
+                    freeCamera.transform.rotation.x = pitch;
+                    freeCamera.transform.rotation.y = yaw;
+
+                    freeCamera.fov = camera.fov;
+                    freeCamera.aspectRatio = camera.aspectRatio;
+                    freeCamera.nearPlane = camera.nearPlane;
+                    freeCamera.farPlane = camera.farPlane;
+
+                    freeCamera.update(0.0f);
+                }
+
+                printf("LookAt FOV: %.3f\n", camera.fov);
+                printf("Free FOV  : %.3f\n", freeCamera.fov);
+                /*
+                // DEBUG POSICAO CAMERA
+                printf("LookAt Pos: %.3f %.3f %.3f\n",
+                camera.position.x,
+                camera.position.y,
+                camera.position.z);
+
+                printf("Free Pos: %.3f %.3f %.3f\n",
+                freeCamera.transform.position.x,
+                freeCamera.transform.position.y,
+                freeCamera.transform.position.z);
+
+                glm::vec3 d1 = camera.getViewDirection();
+                glm::vec3 d2 = freeCamera.forward;
+
+                printf("LookAt Dir: %.3f %.3f %.3f\n", d1.x,d1.y,d1.z);
+                printf("Free Dir  : %.3f %.3f %.3f\n", d2.x,d2.y,d2.z);
+                */
+            }
+        }
+
         if(inputSystem.mapping.justPressed(HITBOX_DEBUG)){
             g_ShowDebugHitboxes = !g_ShowDebugHitboxes;
         }
 
+        /*
         if(inputSystem.mapping.justPressed(CAMERA_MODE_CHANGE)){
             isFreeCamera = !isFreeCamera;
-        }
+        }*/
 
         // ============================================================================
         // INPUTS DE MOVIMENTACAO DO PERSONAGEM
@@ -879,86 +930,6 @@ int main(int argc, char* argv[])
                 else
                     g_CharacterCurrentAnimation = "idle";
             }
-
-            /*
-            if(g_CharacterCurrentAnimation == "sword_combo" || g_CharacterCurrentAnimation == "triple_slash_attack"){
-                g_PlayerSwordHitbox.bodies[0].isActive = true;
-            }
-            else {
-                g_PlayerSwordHitbox.bodies[0].isActive = false;
-            }
-
-            // Garante que o oponente também fique dentro do ringue
-            g_OpponentX = glm::clamp(g_OpponentX, -RING_HALF_X, RING_HALF_X);
-            g_OpponentZ = glm::clamp(g_OpponentZ, -RING_HALF_Z, RING_HALF_Z);
-
-            // Atualiza os objetos do player e do oponente para a posição atual antes
-            // de executar a detecção/correção de colisão.
-            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
-            g_PlayerObject.transform.dirty = true;
-            g_PlayerObject.update();
-
-            g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
-            g_OpponentObject.transform.dirty = true;
-            g_OpponentObject.update();
-
-            if(collisionSystem.update()){
-                    // 
-                    g_OpponentHP -= 1.0f; // Dano de exemplo
-                    g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
-            }
-
-            // atualizacao dos bones
-            g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
-            g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
-
-            float directionToOpponent = atan2(
-                g_OpponentX - g_CharacterX,
-                g_OpponentZ - g_CharacterZ
-            );
-            float directionToChar = atan2(
-                g_CharacterX - g_OpponentX,
-                g_CharacterZ - g_OpponentZ
-            );
-
-            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
-            g_PlayerObject.transform.rotation = {0.0f, directionToOpponent, 0.0f};
-            g_PlayerObject.transform.dirty = true;
-
-            g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
-            g_OpponentObject.transform.rotation = {0.0f, directionToChar, 0.0f};
-            g_OpponentObject.transform.dirty = true;
-
-            g_PlayerObject.update();
-            g_OpponentObject.update();
-
-            // atualização dos projeteis
-            updateBezier(&g_SlashAttack, &g_Proj1);
-            updateBezier(&g_SlashAttack, &g_Proj2);
-            updateBezier(&g_SlashAttack, &g_Proj3);
-        
-            // ================================================================
-            // verifica colisão de cada projétil com o oponente
-            auto checkProjHit = [&](Projectile& proj) {
-                if (!proj.isActive) return;
-                if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
-                    g_OpponentHP -= 10.0f; // dano por projétil
-                    g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
-                    proj.isActive = false; // desativa o projétil ao acertar
-                }
-            };
-
-            checkProjHit(g_Proj1);
-            checkProjHit(g_Proj2);
-            checkProjHit(g_Proj3);
-
-            if (g_CharacterHP <= 0.0f || g_OpponentHP <= 0.0f) {
-                g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
-                g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
-                g_GameOver = true;
-                g_PlayerWon = (g_OpponentHP <= 0.0f && g_CharacterHP > 0.0f);
-            }
-            */
 
             // ================================================================
             // AJUSTANDO SPAWN DOS PROJETEIS
@@ -1695,6 +1666,7 @@ int main(int argc, char* argv[])
         //}
 
         // =============================================================================
+        // BARRAS DE VIDA
         float playerRatio   = g_CharacterHP / MAX_HP;
         float opponentRatio = g_OpponentHP / MAX_HP;
 
@@ -1715,7 +1687,8 @@ int main(int argc, char* argv[])
         TextRendering_PrintString(window, "P1", -0.95f, 0.90f, 1.5f);
         TextRendering_PrintString(window, "P2",  0.92f, 0.90f, 1.5f);
 
-        if (g_GameOver) {
+        // TELA DE FIM DE LUTA
+        if (g_GameOver && !isFreeCamera) {
             DrawRect2D(-0.30f, 0.50f, 0.60f, 0.42f, 0.05f, 0.05f, 0.05f, 0.80f);
             DrawRect2D(-0.28f, 0.48f, 0.56f, 0.38f, 0.15f, 0.15f, 0.15f, 1.0f);
             std::string resultText;
@@ -1727,8 +1700,9 @@ int main(int argc, char* argv[])
                 resultText = "DERROTA";
             }
             TextRendering_PrintString(window, resultText, -0.27f, 0.40f, 2.5f);
-            TextRendering_PrintString(window, "Pressione R para jogar novamente", -0.27f, 0.30f, 1.5f);
-            TextRendering_PrintString(window, "Pressione Q para sair", -0.27f, 0.15f, 1.5f);
+            TextRendering_PrintString(window, "Pressione R para jogar novamente", -0.27f, 0.32f, 1.5f);
+            TextRendering_PrintString(window, "Pressione Q para sair", -0.27f, 0.22f, 1.5f);
+            TextRendering_PrintString(window, "Pressione 2 para camera livre", -0.27f, 0.12, 1.5f);
         }
         // ===========================================================================
 
