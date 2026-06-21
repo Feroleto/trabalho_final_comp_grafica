@@ -103,7 +103,7 @@ void main()
     vec4 enemy_sword_light_vec = enemy_sword_light_pos - p;
     vec4 enemy_sword_l = normalize(enemy_sword_light_vec);
 
-    vec3 enemy_sword_color = vec3(1.0, 0.0, 1.0);
+    vec3 enemy_sword_color = vec3(0.0, 0.8, 0.0);
 
     float enemy_sword_lambert =
         max(0.0, dot(n, enemy_sword_l));

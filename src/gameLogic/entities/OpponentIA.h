@@ -86,7 +86,7 @@ void updateOpponentIA(
             g_Proj2OpponentSpawned = false;
             g_Proj3OpponentSpawned = false;
             
-            nextAttackTime = currentTime + 3.0f;
+            nextAttackTime = currentTime + 7.0f;
             return;
         }
     }
@@ -115,23 +115,23 @@ void updateOpponentIA(
 
     switch (currentState) {
         case OpponentState::FORWARD:
-            g_OpponentX += forward.x * 2.0f * deltaTime;
-            g_OpponentZ += forward.z * 2.0f * deltaTime;
+            g_OpponentX += forward.x * 3.0f * deltaTime;
+            g_OpponentZ += forward.z * 3.0f * deltaTime;
             g_OpponentCurrentAnimation = "walk_forward";
             break;
         case OpponentState::BACKWARD:
-            g_OpponentX -= forward.x * 2.0f * deltaTime;
-            g_OpponentZ -= forward.z * 2.0f * deltaTime;
+            g_OpponentX -= forward.x * 3.0f * deltaTime;
+            g_OpponentZ -= forward.z * 3.0f * deltaTime;
             g_OpponentCurrentAnimation = "walk_backwards";
             break;
         case OpponentState::LEFT:
-            g_OpponentX += right.x * 2.0f * deltaTime;
-            g_OpponentZ += right.z * 2.0f * deltaTime;
+            g_OpponentX += right.x * 3.0f * deltaTime;
+            g_OpponentZ += right.z * 3.0f * deltaTime;
             g_OpponentCurrentAnimation = "strafe_left";
             break;
         case OpponentState::RIGHT:
-            g_OpponentX -= right.x * 2.0f * deltaTime;
-            g_OpponentZ -= right.z * 2.0f * deltaTime;
+            g_OpponentX -= right.x * 3.0f * deltaTime;
+            g_OpponentZ -= right.z * 3.0f * deltaTime;
             g_OpponentCurrentAnimation = "strafe_right";
             break;
         default:

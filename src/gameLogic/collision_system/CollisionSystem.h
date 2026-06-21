@@ -9,7 +9,7 @@ public:
     Object* swordHitbox;
 
     std::vector<Object*>* objects;
-    std::vector<Body3D*>* enemyAttacks;
+    Object* enemyAttacks;
 
     std::vector<Object*> objectCandidates;
     std::vector<Body3D*> bodyCandidates;
@@ -19,12 +19,13 @@ public:
 
     CollisionSystem(Object* player,
                     std::vector<Object*>* objects,
-                    Object* swordHitbox)
+                    Object* swordHitbox,
+                    Object* enemyAttacks)
     {
         this->player = player;
         this->objects = objects;
         this->swordHitbox = swordHitbox;
-        //this->enemyAttacks = enemyAttacks;
+        this->enemyAttacks = enemyAttacks;
 
         objectCandidates.reserve(32);
         bodyCandidates.reserve(32);
