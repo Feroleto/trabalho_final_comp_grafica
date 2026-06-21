@@ -320,7 +320,6 @@ float g_CharacterZ = 0.0f;
 // limites de movimentacao (ringue quadrado)
 const float RING_HALF_X = 8.0f; // metade do comprimento no eixo X
 const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
-//const float RING_THICKNESS = 0.12f; // espessura visual das bordas do ringue
 
 // velocidade de movimento
 const float MOVE_SPEED = 0.02F;
@@ -448,6 +447,8 @@ void resetGame() {
     }
     g_GameOver = false;
     g_PlayerWon = false;
+
+    
 }
 
 int main(int argc, char* argv[])
@@ -754,6 +755,8 @@ int main(int argc, char* argv[])
         if (g_GameOver && !isFreeCamera) {
             if (g_input.isPressed(GLFW_KEY_R)) {
                 resetGame();
+                camera.currentSide = glm::vec3(1,0,0);
+                camera.position = glm::vec3(0);
             }
             if (g_input.isPressed(GLFW_KEY_Q)) {
                 glfwSetWindowShouldClose(window, true);
