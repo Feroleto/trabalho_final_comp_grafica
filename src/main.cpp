@@ -785,6 +785,10 @@ int main(int argc, char* argv[])
             isFreeCamera = !isFreeCamera;
         }
 
+        if(inputSystem.mapping.justPressed(OPPONENT_AI)){
+            OpponentAi = !OpponentAi;
+        }
+
         // ============================================================================
         // INPUTS DE MOVIMENTACAO DO PERSONAGEM
         // ADICIONANDO ANIMAÇÕES NO PERSONAGEM
@@ -966,7 +970,7 @@ int main(int argc, char* argv[])
 
             // atualizacao dos bones
             g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
-            g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
+            g_Opponent.update(g_OpponentAnimationTime, g_OpponentCurrentAnimation);
 
             float directionToOpponent = atan2(
                 g_OpponentX - g_CharacterX,
@@ -1014,7 +1018,7 @@ int main(int argc, char* argv[])
                 g_GameOver = true;
                 g_PlayerWon = (g_OpponentHP <= 0.0f && g_CharacterHP > 0.0f);
             }
-            */
+            
 
             // ================================================================
             // AJUSTANDO SPAWN DOS PROJETEIS
@@ -1071,12 +1075,6 @@ int main(int argc, char* argv[])
             }
         }
 
-        if(g_CharacterCurrentAnimation == "sword_combo" || g_CharacterCurrentAnimation == "triple_slash_attack"){
-                g_PlayerSwordHitbox.bodies[0].isActive = true;
-            }
-            else {
-                g_PlayerSwordHitbox.bodies[0].isActive = false;
-            }
 
             // Garante que o oponente também fique dentro do ringue
             g_OpponentX = glm::clamp(g_OpponentX, -RING_HALF_X, RING_HALF_X);
@@ -1100,7 +1098,7 @@ int main(int argc, char* argv[])
 
             // atualizacao dos bones
             g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
-            g_Opponent.update(g_CharacterAnimationTime, g_OpponentCurrentAnimation);
+            g_Opponent.update(g_OpponentAnimationTime, g_OpponentCurrentAnimation);
 
             float directionToOpponent = atan2(
                 g_OpponentX - g_CharacterX,

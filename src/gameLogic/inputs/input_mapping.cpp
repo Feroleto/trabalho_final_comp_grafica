@@ -13,6 +13,7 @@ void ButtonMapping::init() {
 
     keys[HITBOX_DEBUG] = GLFW_KEY_1;
     keys[CAMERA_MODE_CHANGE] = GLFW_KEY_2;
+    keys[OPPONENT_AI] = GLFW_KEY_3;
 
     keys[CAMERA_UP] = GLFW_KEY_0;
     keys[CAMERA_DOWN] = GLFW_KEY_9;

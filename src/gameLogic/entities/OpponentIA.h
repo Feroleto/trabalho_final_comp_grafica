@@ -42,7 +42,7 @@ void updateOpponentIA(
 
     int r = distri(rng);
 
-    if (distToPlayer <= 3.0f && r <= 50)
+    if (distToPlayer <= 2.5f && r <= 50)
     {
         float dur = 0.7f;
 
