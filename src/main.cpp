@@ -652,6 +652,7 @@ int main(int argc, char* argv[])
     g_Character.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     g_Character.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
     g_Character.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
+    g_Character.loadAnimation("damage_taken", "../../data/Yoshimitsu_animations/damage_taken.fbx");
     
     // ===============================================================================
     // carregando animações do oponente (mesmo modelo)
@@ -666,6 +667,7 @@ int main(int argc, char* argv[])
     g_Opponent.loadAnimation("strafe_right", "../../data/Yoshimitsu_animations/Strafe_right.fbx");
     g_Opponent.loadAnimation("triple_slash_attack", "../../data/Yoshimitsu_animations/triple_slash_attack.fbx");
     g_Opponent.loadAnimation("sword_combo", "../../data/Yoshimitsu_animations/Sword_combo.fbx");
+    g_Opponent.loadAnimation("damage_taken", "../../data/Yoshimitsu_animations/damage_taken.fbx");
     
     // ===============================================================================
     // ADICIONANDO MODELO DA ESPADA
@@ -1010,6 +1012,7 @@ int main(int argc, char* argv[])
             if(collisionSystem.update()){
                     // 
                     g_OpponentHP -= 1.0f; // Dano de exemplo
+                    g_OpponentCurrentAnimation = "damage_taken";
                     g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
             }
 
@@ -1048,6 +1051,7 @@ int main(int argc, char* argv[])
                 if (!proj.isActive) return;
                 if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
                     g_OpponentHP -= 10.0f; // dano por projétil
+                    g_OpponentCurrentAnimation = "damage_taken";
                     g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
                     proj.isActive = false; // desativa o projétil ao acertar
                 }
