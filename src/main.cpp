@@ -483,6 +483,8 @@ void resetGame() {
     }
     g_GameOver = false;
     g_PlayerWon = false;
+
+    
 }
 
 int main(int argc, char* argv[])
@@ -915,6 +917,34 @@ int main(int argc, char* argv[])
             else {
                 if (currentTime > g_OpponentForcedAnimationEnd) {
                     g_OpponentCurrentAnimation = "idle";
+                }
+            }
+
+            if(OpponentAi){
+                if (currentTime < g_OpponentForcedAnimationEnd) {
+                    // root motion do ataque: usa apenas o deslocamento do Hips e não soma
+                    // a translação interna da animação com a movimentação do personagem.
+                    float prevAnimTime = glm::max(0.0f, g_OpponentAnimationTime - deltaTime);
+                    glm::vec3 prevRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
+                    glm::vec3 currRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, g_OpponentAnimationTime);
+                    float deltaZ = currRootPos.z - prevRootPos.z;
+                    g_OpponentX = g_OpponentStartX + deltaZ * ROOT_MOTION_SCALE;
+                    g_OpponentZ = g_OpponentStartZ;
+                }
+                else{
+                    updateOpponentIA(deltaTime,
+                                    currentTime,
+                                    g_OpponentForcedAnimationEnd,
+                                    g_OpponentX, g_OpponentY, g_OpponentZ,
+                                    g_OpponentAnimationTime,
+                                    g_OpponentAnimationStartTime,
+                                    g_OpponentStartX, g_OpponentStartZ,
+                                    g_OpponentCurrentAnimation,
+                                    g_Proj1opponentSpawned,
+                                    g_Proj2opponentSpawned,
+                                    g_Proj3opponentSpawned,
+                                    g_CharacterX, g_CharacterY, g_CharacterZ,
+                                    g_Opponent);
                 }
             }
         
