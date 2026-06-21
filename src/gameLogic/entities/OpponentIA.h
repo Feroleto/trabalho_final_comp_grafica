@@ -45,7 +45,7 @@ void updateOpponentIA(
     enum class OpponentState {
         IDLE,
         FORWARD,
-        BACKWARD,    // recuando
+        BACKWARD,
         LEFT,
         RIGHT
     };
@@ -54,43 +54,41 @@ void updateOpponentIA(
     static float nextDecisionTime = 0.0f;
     static float nextAttackTime = 0.0f;
 
-    if (distToPlayer <= 2.5f && r <= 50)
-    {
-        float dur = 0.7f;
+    if (currentTime >= nextAttackTime && currentTime >= g_OpponentForcedAnimationEnd) {
+        if (distToPlayer <= 3.0f) {
+            float dur = 0.7f;
 
-        g_OpponentStartX = g_OpponentX;
-        g_OpponentStartZ = g_OpponentZ;
+            g_OpponentStartX = g_OpponentX;
+            g_OpponentStartZ = g_OpponentZ;
 
-        g_OpponentCurrentAnimation = "sword_combo";
-        g_OpponentAnimationTime = 0.9f;
-        g_OpponentForcedAnimationEnd = currentTime + dur;
+            g_OpponentCurrentAnimation = "sword_combo";
+            g_OpponentAnimationTime = 0.9f;
+            g_OpponentForcedAnimationEnd = currentTime + dur;
 
-        return;
-    }
+            nextAttackTime = currentTime + 1.5f; //cooldown 1.5 segundos
+            return;
+        }
+        if (distToPlayer > 5.0f) {
+            float dur = g_Opponent.getAnimationDuration("triple_slash_attack");
 
-    if (distToPlayer > 10.0f && r <= 70)
-    {
-        float dur =
-            g_Opponent.getAnimationDuration(
-                "triple_slash_attack"
-            );
+            if (dur <= 0.0f)
+                dur = 1.0f;
 
-        if (dur <= 0.0f)
-            dur = 1.0f;
+            g_OpponentStartX = g_OpponentX;
+            g_OpponentStartZ = g_OpponentZ;
 
-        g_OpponentStartX = g_OpponentX;
-        g_OpponentStartZ = g_OpponentZ;
+            g_OpponentAnimationStartTime = currentTime;
+            g_OpponentCurrentAnimation = "triple_slash_attack";
+            g_OpponentAnimationTime = 0.0f;
+            g_OpponentForcedAnimationEnd = currentTime + dur;
 
-        g_OpponentAnimationStartTime = currentTime;
-        g_OpponentCurrentAnimation = "triple_slash_attack";
-        g_OpponentAnimationTime = 0.0f;
-        g_OpponentForcedAnimationEnd = currentTime + dur;
-
-        g_Proj1OpponentSpawned = false;
-        g_Proj2OpponentSpawned = false;
-        g_Proj3OpponentSpawned = false;
-
-        return;
+            g_Proj1OpponentSpawned = false;
+            g_Proj2OpponentSpawned = false;
+            g_Proj3OpponentSpawned = false;
+            
+            nextAttackTime = currentTime + 3.0f;
+            return;
+        }
     }
 
     if (currentTime >= nextDecisionTime) {
@@ -101,40 +99,39 @@ void updateOpponentIA(
         int roll = r(rng);
 
         if (distToPlayer > 3.0f) {
-            // longe: 70% chance de aproximar, 20% strafe, 10% recuar
+            //longe 70% chance de aproximar, 20% girar, 10% recuar
             if (roll < 70)       currentState = OpponentState::FORWARD;
             else if (roll < 90)  currentState = (roll % 2 == 0) ? OpponentState::LEFT
                                                                 : OpponentState::RIGHT;
             else                 currentState = OpponentState::BACKWARD;
         } else {
-            // perto: 40% strafe, 30% recuar, 30% idle (esperando atacar)
-            if (roll < 40)       currentState = (roll % 2 == 0) ? OpponentState::LEFT
+            //perto 40 girar, 30% recuar
+            if (roll < 50)       currentState = (roll % 2 == 0) ? OpponentState::LEFT
                                                                 : OpponentState::RIGHT;
             else if (roll < 70)  currentState = OpponentState::BACKWARD;
             else                 currentState = OpponentState::IDLE;
         }
     }
 
-    // aplica o estado atual todo frame — animação e movimento
     switch (currentState) {
         case OpponentState::FORWARD:
-            g_OpponentX += forward.x * 0.5f * deltaTime;
-            g_OpponentZ += forward.z * 0.5f * deltaTime;
+            g_OpponentX += forward.x * 2.0f * deltaTime;
+            g_OpponentZ += forward.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "walk_forward";
             break;
         case OpponentState::BACKWARD:
-            g_OpponentX -= forward.x * 0.5f * deltaTime;
-            g_OpponentZ -= forward.z * 0.5f * deltaTime;
+            g_OpponentX -= forward.x * 2.0f * deltaTime;
+            g_OpponentZ -= forward.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "walk_backwards";
             break;
         case OpponentState::LEFT:
-            g_OpponentX += right.x * 0.4f * deltaTime;
-            g_OpponentZ += right.z * 0.4f * deltaTime;
+            g_OpponentX += right.x * 2.0f * deltaTime;
+            g_OpponentZ += right.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "strafe_left";
             break;
         case OpponentState::RIGHT:
-            g_OpponentX -= right.x * 0.4f * deltaTime;
-            g_OpponentZ -= right.z * 0.4f * deltaTime;
+            g_OpponentX -= right.x * 2.0f * deltaTime;
+            g_OpponentZ -= right.z * 2.0f * deltaTime;
             g_OpponentCurrentAnimation = "strafe_right";
             break;
         default:
