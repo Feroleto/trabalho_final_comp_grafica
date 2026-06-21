@@ -270,7 +270,7 @@ GLuint g_HudVBO = 0;
 // variáveis para renderização de hitboxes de debug
 GLuint g_DebugLineVAO = 0;
 GLuint g_DebugLineVBO = 0;
-bool g_ShowDebugHitboxes = true;
+bool g_ShowDebugHitboxes = false;
 const int DEBUG_BOX = 4;
 const int DEBUG_BOX_SWORD = 5;
 
@@ -324,7 +324,7 @@ const float RING_HALF_X = 8.0f; // metade do comprimento no eixo X
 const float RING_HALF_Z = 8.0f; // metade do comprimento no eixo Z
 
 // velocidade de movimento
-const float MOVE_SPEED = 0.02F;
+const float MOVE_SPEED = 1.0f;
 
 // root motion
 static const std::string ROOT_MOTION_BONE = "mixamorig:Hips";
@@ -342,6 +342,14 @@ std::string g_OpponentCurrentAnimation = "idle";
 float g_OpponentX = 3.0f;
 float g_OpponentY = 0.2f;
 float g_OpponentZ = 0.0f;
+float g_OpponentAnimationTime = 0.0f;
+float g_OpponentLastFrameTime = 0.0f;
+// tempo (em segundos) até quando uma animação forçada (ataque) deve ser reproduzida
+float g_OpponentForcedAnimationEnd = 0.0f;
+float g_OpponentStartX   = 0.0f;  // posição do personagem ao iniciar o golpe
+float g_OpponentStartZ   = 0.0f;
+float g_OpponentAnimationStartTime = 0.0f;
+float g_OpponentAnimationTotalDur = 0.0f;
 
 float g_OpponentAnimationTime = 0.0f;
 float g_OpponentLastFrameTime = 0.0f;
@@ -829,6 +837,7 @@ int main(int argc, char* argv[])
         float deltaTime = currentTime - g_CharacterLastFrameTime;
         g_CharacterLastFrameTime = currentTime;
         if (!g_GameOver) {
+            g_OpponentLastFrameTime = currentTime;
             g_CharacterAnimationTime += deltaTime;
             g_OpponentLastFrameTime = currentTime;
             g_OpponentAnimationTime += deltaTime;
@@ -866,9 +875,36 @@ int main(int argc, char* argv[])
                 {
                     movement = glm::normalize(movement);
 
-                    g_CharacterX += movement.x * MOVE_SPEED;
-                    g_CharacterZ += movement.z * MOVE_SPEED;
-                }
+                g_CharacterX += movement.x * MOVE_SPEED * deltaTime;
+                g_CharacterZ += movement.z * MOVE_SPEED * deltaTime;
+            }
+        }
+
+        if(OpponentAi){
+            if (currentTime < g_OpponentForcedAnimationEnd) {
+                // root motion do ataque: usa apenas o deslocamento do Hips e não soma
+                // a translação interna da animação com a movimentação do personagem.
+                float prevAnimTime = glm::max(0.0f, g_OpponentAnimationTime - deltaTime);
+                glm::vec3 prevRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, prevAnimTime);
+                glm::vec3 currRootPos = g_Opponent.getBonePosition(g_OpponentCurrentAnimation, ROOT_MOTION_BONE, g_OpponentAnimationTime);
+                float deltaZ = currRootPos.z - prevRootPos.z;
+                g_OpponentX = g_OpponentStartX + deltaZ * ROOT_MOTION_SCALE;
+                g_OpponentZ = g_OpponentStartZ;
+            }
+            else{
+                updateOpponentIA(deltaTime,
+                                currentTime,
+                                g_OpponentForcedAnimationEnd,
+                                g_OpponentX, g_OpponentY, g_OpponentZ,
+                                g_OpponentAnimationTime,
+                                g_OpponentAnimationStartTime,
+                                g_OpponentStartX, g_OpponentStartZ,
+                                g_OpponentCurrentAnimation,
+                                g_Proj1opponentSpawned,
+                                g_Proj2opponentSpawned,
+                                g_Proj3opponentSpawned,
+                                g_CharacterX, g_CharacterY, g_CharacterZ,
+                                g_Opponent);
             }
 
             if(OpponentAi){
@@ -967,6 +1003,92 @@ int main(int argc, char* argv[])
                 else
                     g_CharacterCurrentAnimation = "idle";
             }
+
+        // atualiza posição do oponente
+        /*g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY + 1.0f, g_OpponentZ};
+        g_OpponentObject.transform.dirty = true;*/
+
+        if(g_CharacterCurrentAnimation == "sword_combo" || g_CharacterCurrentAnimation == "triple_slash_attack"){
+            g_PlayerSwordHitbox.bodies[0].isActive = true;
+        }
+        else {
+            g_PlayerSwordHitbox.bodies[0].isActive = false;
+        }
+
+        if(g_OpponentCurrentAnimation == "sword_combo" || g_OpponentCurrentAnimation == "triple_slash_attack"){
+            g_OpponentSwordHitbox.bodies[0].isActive = true;
+        }
+        else {
+            g_OpponentSwordHitbox.bodies[0].isActive = false;
+        }
+
+            // Atualiza os objetos do player e do oponente para a posição atual antes
+            // de executar a detecção/correção de colisão.
+            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+            g_PlayerObject.transform.dirty = true;
+            g_PlayerObject.update();
+
+            g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+            g_OpponentObject.transform.dirty = true;
+            g_OpponentObject.update();
+
+            if(collisionSystem.update()){
+                    // 
+                    g_OpponentHP -= 1.0f; // Dano de exemplo
+                    g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+            }
+
+            // atualizacao dos bones
+            g_Character.update(g_CharacterAnimationTime, g_CharacterCurrentAnimation);
+            g_Opponent.update(g_OpponentAnimationTime, g_OpponentCurrentAnimation);
+
+            float directionToOpponent = atan2(
+                g_OpponentX - g_CharacterX,
+                g_OpponentZ - g_CharacterZ
+            );
+            float directionToChar = atan2(
+                g_CharacterX - g_OpponentX,
+                g_CharacterZ - g_OpponentZ
+            );
+
+            g_PlayerObject.transform.position = {g_CharacterX, g_CharacterY, g_CharacterZ};
+            g_PlayerObject.transform.rotation = {0.0f, directionToOpponent, 0.0f};
+            g_PlayerObject.transform.dirty = true;
+
+            g_OpponentObject.transform.position = {g_OpponentX, g_OpponentY, g_OpponentZ};
+            g_OpponentObject.transform.rotation = {0.0f, directionToChar, 0.0f};
+            g_OpponentObject.transform.dirty = true;
+
+            g_PlayerObject.update();
+            g_OpponentObject.update();
+
+            // atualização dos projeteis
+            updateBezier(&g_SlashAttack, &g_Proj1);
+            updateBezier(&g_SlashAttack, &g_Proj2);
+            updateBezier(&g_SlashAttack, &g_Proj3);
+        
+            // ================================================================
+            // verifica colisão de cada projétil com o oponente
+            auto checkProjHit = [&](Projectile& proj) {
+                if (!proj.isActive) return;
+                if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
+                    g_OpponentHP -= 10.0f; // dano por projétil
+                    g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+                    proj.isActive = false; // desativa o projétil ao acertar
+                }
+            };
+
+            checkProjHit(g_Proj1);
+            checkProjHit(g_Proj2);
+            checkProjHit(g_Proj3);
+
+            if (g_CharacterHP <= 0.0f || g_OpponentHP <= 0.0f) {
+                g_CharacterHP = glm::clamp(g_CharacterHP, 0.0f, MAX_HP);
+                g_OpponentHP = glm::clamp(g_OpponentHP, 0.0f, MAX_HP);
+                g_GameOver = true;
+                g_PlayerWon = (g_OpponentHP <= 0.0f && g_CharacterHP > 0.0f);
+            }
+            
 
             // ================================================================
             // AJUSTANDO SPAWN DOS PROJETEIS
