@@ -42,6 +42,18 @@ void updateOpponentIA(
 
     int r = distri(rng);
 
+    enum class OpponentState {
+        IDLE,
+        FORWARD,
+        BACKWARD,    // recuando
+        LEFT,
+        RIGHT
+    };
+
+    static OpponentState currentState = OpponentState::IDLE;
+    static float nextDecisionTime = 0.0f;
+    static float nextAttackTime = 0.0f;
+
     if (distToPlayer <= 2.5f && r <= 50)
     {
         float dur = 0.7f;
@@ -81,47 +93,55 @@ void updateOpponentIA(
         return;
     }
 
-    // ======================
-    // Movimento
-    // ======================
-    glm::vec3 movement(0.0f);
+    if (currentTime >= nextDecisionTime) {
+        std::uniform_real_distribution<float> timerDist(0.5f, 1.0f);
+        nextDecisionTime = currentTime + timerDist(rng);
 
-    if (distToPlayer >= 1.0f)
-    {
-        if (g_OpponentCurrentAnimation == "walk_forward")
-            r -= 10;
+        std::uniform_int_distribution<int> r(0, 99);
+        int roll = r(rng);
 
-        if (g_OpponentCurrentAnimation == "walk_backwards")
-            r += 10;
-
-        if (r <= 40)
-        {
-            movement += forward;
-            g_OpponentCurrentAnimation = "walk_forward";
-        }
-        else if (r >= 60)
-        {
-            movement -= forward;
-            g_OpponentCurrentAnimation = "walk_backwards";
-        }
-        else if (r <= 50)
-        {
-            movement += right;
-            g_OpponentCurrentAnimation = "strafe_left";
-        }
-        else
-        {
-            movement -= right;
-            g_OpponentCurrentAnimation = "strafe_right";
-        }
-
-        if (glm::length(movement) > 0.0f) {
-            movement = glm::normalize(movement);
-
-            g_OpponentX += movement.x * 0.5f * deltaTime;
-            g_OpponentZ += movement.z * 0.05f * deltaTime;
+        if (distToPlayer > 3.0f) {
+            // longe: 70% chance de aproximar, 20% strafe, 10% recuar
+            if (roll < 70)       currentState = OpponentState::FORWARD;
+            else if (roll < 90)  currentState = (roll % 2 == 0) ? OpponentState::LEFT
+                                                                : OpponentState::RIGHT;
+            else                 currentState = OpponentState::BACKWARD;
+        } else {
+            // perto: 40% strafe, 30% recuar, 30% idle (esperando atacar)
+            if (roll < 40)       currentState = (roll % 2 == 0) ? OpponentState::LEFT
+                                                                : OpponentState::RIGHT;
+            else if (roll < 70)  currentState = OpponentState::BACKWARD;
+            else                 currentState = OpponentState::IDLE;
         }
     }
+
+    // aplica o estado atual todo frame — animação e movimento
+    switch (currentState) {
+        case OpponentState::FORWARD:
+            g_OpponentX += forward.x * 0.5f * deltaTime;
+            g_OpponentZ += forward.z * 0.5f * deltaTime;
+            g_OpponentCurrentAnimation = "walk_forward";
+            break;
+        case OpponentState::BACKWARD:
+            g_OpponentX -= forward.x * 0.5f * deltaTime;
+            g_OpponentZ -= forward.z * 0.5f * deltaTime;
+            g_OpponentCurrentAnimation = "walk_backwards";
+            break;
+        case OpponentState::LEFT:
+            g_OpponentX += right.x * 0.4f * deltaTime;
+            g_OpponentZ += right.z * 0.4f * deltaTime;
+            g_OpponentCurrentAnimation = "strafe_left";
+            break;
+        case OpponentState::RIGHT:
+            g_OpponentX -= right.x * 0.4f * deltaTime;
+            g_OpponentZ -= right.z * 0.4f * deltaTime;
+            g_OpponentCurrentAnimation = "strafe_right";
+            break;
+        default:
+            g_OpponentCurrentAnimation = "idle";
+            break;
+    }
 }
+
 
 #endif
