@@ -20,7 +20,7 @@ set(SOURCES
 
   src/gameLogic/attacks/attacks.cpp
 
-  src/gameLogic/collision_system/CollisionSystem.cpp
+  src/gameLogic/collision_system/collisions.cpp
 
   src/camera/camera.cpp
 

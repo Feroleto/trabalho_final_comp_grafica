@@ -110,3 +110,39 @@ inline void queryObjectBody(Object* reference,
         candidates.push_back(b);
     }
 }
+
+// PRE-CONDITION: objects must be sorted by globalAABB.min.x (ascending)
+inline void queryBodyObject(Body3D* reference,
+                            const std::vector<Object*>& objects,
+                            std::vector<Object*>& candidates) {
+
+    candidates.clear();
+
+    for (size_t i = 0; i < objects.size(); i++) {
+        Object* obj = objects[i];
+
+        // obj está completamente à esquerda
+        if (obj->globalAABB.max.x < reference->worldAABB.min.x)
+            continue;
+
+        // obj está completamente à direita → pode parar (lista ordenada)
+        if (obj->globalAABB.min.x > reference->worldAABB.max.x)
+            break;
+
+        // checagem no eixo Y
+        if (obj->globalAABB.min.y > reference->worldAABB.max.y ||
+            obj->globalAABB.max.y < reference->worldAABB.min.y)
+        {
+            continue;
+        }
+
+        // checagem no eixo Z
+        if (obj->globalAABB.min.z > reference->worldAABB.max.z ||
+            obj->globalAABB.max.z < reference->worldAABB.min.z)
+        {
+            continue;
+        }
+
+        candidates.push_back(obj);
+    }
+}

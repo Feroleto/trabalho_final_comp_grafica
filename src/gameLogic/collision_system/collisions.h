@@ -41,4 +41,8 @@ public:
     void insertionSort(std::vector<Object*>& objects);
     
     void insertionSort(std::vector<Body3D*>& bodies);
+
+    bool checkprojhitplayer(Projectile& proj);
+
+    bool checkprojhitopponent(Projectile& proj);
 };

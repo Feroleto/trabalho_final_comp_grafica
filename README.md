@@ -1,8 +1,31 @@
 # Computação Gráfica e Visualização I (INF01047) - INF/UFRGS
+Guilherme Hilgert Feroleto - 587076
+Henrique Wermann da Silva - 588786
 
-Este repositório contém o código base para o trabalho final. O enunciado completo do trabalho final está no Moodle:
+## Aplicação
+Nosso trabalho é um jogo de luta baseado no jogo Tekken 3, lançado em 1997. No jogo é possível controlar um dos personagens e lutar contra o adversário. A batalha pode ocorrer tanto com a IA do oponente ligada quanto desligada. O personagem possui dois golpes, um ataque rápido e outro de projétil que se movimenta com base em curvas de bezier. As espadas dos personagens emitem uma luz verde que pode ser vista iluminando o chão e os personagens, principalmente peitoral e pernas.
 
-https://moodle.ufrgs.br/mod/assign/view.php?id=6018620
+## Contribuições para o trabalho
+
+O aluno Henrique da Silva ficou responsável por implementar os aspectos da gameplay como o sistema de inputs, colisão, lógica de golpes e movimentação, câmeras iluminação das espadas e a sombra dos personagens
+
+## Uso de IA
+Para realizar o trabalho utilizamos IAs como gemini, github Copilot e Claude. A parte onde elas foram usadas mais diretamente estão explicitadas no arquivo PROMPTS.md. Fora esses, a IA serviu como ferramenta para debugs eventuais e aprendizado sobre OpenGl e c++. O uso de Ia foi muito útil para estes casos, acelerando considervelmente o processo, porém ela não conseguiu nos ajudar para corrigir um bug que havia na câmera em que quando os personagens ficavam muito próximos ela invertia de lado. Neste caso foi tentado alternativas de correção, com diversas IAs, mas nehuma conseguiu ajudar, enquanto todo o problema era causado por somente uma linha do código que precisava ser retirada.
+
+## Imagens
+![Diagrama](./imagensspec/img1.png)
+![Diagrama](./imagensspec/img2.png)
+![Diagrama](./imagensspec/img3.png)>
+
+
+## Manual
+-AWSD para movimentação do personagem.
+-I para ataque rápido.
+-O para o golpe de projétil.
+-1 para ligar e desligar a visualização das hitboxes.
+-2 na tela de fim de jogo para trocar o modo de câmera.
+    -no modo de camera livre use as setas do teclado para movimentar nos eixos X e Z e use 0 e 9 para se mover no eixo Y.
+-3 para ligar e desligar a IA do adversário.
 
 ## Instalação da biblioteca Assimp
 

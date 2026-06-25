@@ -1,4 +1,4 @@
-#include "CollisionSystem.h"
+#include "collisions.h"
 
 // Atualiza a posição global do personagem no main.cpp quando o sistema de colisão corrige o player.
 extern float g_CharacterX;
@@ -107,4 +107,36 @@ void CollisionSystem::insertionSort(std::vector<Body3D*>& bodies) {
 
         bodies[j] = key;
     }
+}
+
+bool CollisionSystem::checkprojhitopponent(Projectile& proj){
+    CollisionManifold.reset();
+    queryBodyObject(&proj.hitbox, *objects, objectCandidates);
+
+    for (auto& obj : objectCandidates) {
+            for (auto& body : obj->bodies) {
+                if (testsat(proj.hitbox, body, CollisionManifold)) {
+                    return true;
+                }
+            }
+        }
+
+    return false;
+
+}
+
+bool CollisionSystem::checkprojhitplayer(Projectile& proj){
+    CollisionManifold.reset();
+    queryBodyObject(&proj.hitbox, {player}, objectCandidates);
+
+    for (auto& obj : objectCandidates) {
+            for (auto& body : obj->bodies) {
+                if (testsat(proj.hitbox, body, CollisionManifold)) {
+                    return true;
+                }
+            }
+        }
+
+    return false;
+
 }

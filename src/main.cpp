@@ -281,7 +281,7 @@ bool isFreeCamera = false;
 #include "gameLogic\inputs\input_system.h"
 #include "gameLogic\inputs\platform_input.h"
 
-#include "gameLogic/collision_system/CollisionSystem.h"
+#include "gameLogic/collision_system/collisions.h"
      ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 ////////////////////////////////////////////////////////////////////////////INPUT DEBUG
 
@@ -528,7 +528,7 @@ int main(int argc, char* argv[])
     GLFWwindow* window;
     printf("DEBUG: Creating GLFW window...\n");
     fflush(stdout);
-    window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "INF01047 - 587076 / 588786 - Guilherme Feroleto / Henrique da Silva", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -1185,7 +1185,7 @@ int main(int argc, char* argv[])
         // verifica colisão de cada projétil com o oponente
         auto checkProjHit = [&](Projectile& proj) {
             if (!proj.isActive) return;
-            if (proj.hitbox.worldAABB.intersects(g_OpponentObject.globalAABB)) {
+            if (collisionSystem.checkprojhitopponent(proj)) {
                 g_OpponentHP -= 10.0f; // dano por projétil
                 
                 float dur = g_Opponent.getAnimationDuration("damage_taken");
@@ -1204,7 +1204,7 @@ int main(int argc, char* argv[])
         };
         auto checkProjHitOpponent = [&](Projectile& proj) {
             if (!proj.isActive) return;
-            if (proj.hitbox.worldAABB.intersects(g_PlayerObject.globalAABB)) {
+            if (collisionSystem.checkprojhitplayer(proj)) {
                 g_CharacterHP -= 10.0f; // dano por projétil
                 
                 float dur = g_Character.getAnimationDuration("damage_taken");

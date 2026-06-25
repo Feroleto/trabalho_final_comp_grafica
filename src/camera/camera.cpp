@@ -49,12 +49,12 @@
         glm::vec3 obj2toObj1 = normalize(obj1.transform.position - obj2.transform.position);
         glm::vec3 desiredSide = normalize(cross(glm::vec3(0,1,0), obj2toObj1));
 
-        if(dot(currentSide, desiredSide) < 0.0f)
-            desiredSide = -desiredSide;
+        /*if(dot(currentSide, desiredSide) < 0.0f)
+            desiredSide = -desiredSide;*/
 
         currentSide = desiredSide;
 
-        // distância entre os personagens
+        //distância entre os personagens
         float dist = sqrt(
             (obj1.transform.position.x - obj2.transform.position.x) *
             (obj1.transform.position.x - obj2.transform.position.x) +
@@ -62,11 +62,11 @@
             (obj1.transform.position.z - obj2.transform.position.z)
         );
 
-        // câmera se afasta pouco — distância quase fixa
+        //afasta pouco
         float targetDistance = 3.5f + dist * 0.15f;
         distance += (targetDistance - distance) * 5.0f * delta;
 
-        // FOV aumenta quando os personagens se afastam — efeito Tekken
+        //fov aumenta quando os personagens se afastam
         float targetFov = 35.0f + dist * 6.0f;
         targetFov = glm::clamp(targetFov, 35.0f, 90.0f);
         fov += (targetFov - fov) * 5.0f * delta;
