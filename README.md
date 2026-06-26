@@ -20,13 +20,13 @@ Para realizar o trabalho utilizamos IAs como gemini, github Copilot e Claude. A 
 
 
 ## Manual
-- Teclas "AWSD" para movimentação do personagem.\n
-- Tecla "I" para ataque rápido.\n
-- Tecla "O" para o golpe de projétil.\n
-- Tecla "1" para ligar e desligar a visualização das hitboxes.\n
-- Tecla "2" na tela de fim de jogo para trocar o modo de câmera.\n
-    - no modo de camera livre use as setas do teclado para movimentar nos eixos X e Z e use "0" e "9" para se mover no eixo Y.\n
-- Tecla "3" para ligar e desligar a IA do adversário.\n
+- Teclas "AWSD" para movimentação do personagem.
+- Tecla "I" para ataque rápido.
+- Tecla "O" para o golpe de projétil.
+- Tecla "1" para ligar e desligar a visualização das hitboxes.
+- Tecla "2" na tela de fim de jogo para trocar o modo de câmera.
+    - no modo de camera livre use as setas do teclado para movimentar nos eixos X e Z e use "0" e "9" para se mover no eixo Y.
+- Tecla "3" para ligar e desligar a IA do adversário.
 
 ## Instalação da biblioteca Assimp
 
