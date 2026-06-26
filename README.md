@@ -16,7 +16,7 @@ Para realizar o trabalho utilizamos IAs como gemini, github Copilot e Claude. A 
 ## Imagens
 ![Diagrama](./imagensspec/img1.png)
 ![Diagrama](./imagensspec/img2.png)
-![Diagrama](./imagensspec/img3.png)>
+![Diagrama](./imagensspec/img3.png)
 
 
 ## Manual
@@ -27,6 +27,10 @@ Para realizar o trabalho utilizamos IAs como gemini, github Copilot e Claude. A 
 - Tecla "2" na tela de fim de jogo para trocar o modo de câmera.
     - no modo de camera livre use as setas do teclado para movimentar nos eixos X e Z e use "0" e "9" para se mover no eixo Y.
 - Tecla "3" para ligar e desligar a IA do adversário.
+
+## Passos necessários para compilação e execução da aplicação (em ambiente windows - não testado em linux)
+
+Primeiro é necessário ter a biblioteca Assimp instalada, se já tiver ignorar próximo passo
 
 ## Instalação da biblioteca Assimp
 
@@ -104,3 +108,7 @@ caso esteja dando problema nos includes das bibliotecas do assimp, criar um arqu
     "version": 4
 }
 ```
+
+## Depois da instalação e configuração da Assimp
+
+Depois de concluir a configuração da biblioteca Assimp, deve ser possível compilar e rodar o programa sem problemas, sendo possível executar diretamente pelo botão de launch no canto inferior esquerdo do vscode
