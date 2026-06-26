@@ -7,7 +7,8 @@ Nosso trabalho é um jogo de luta baseado no jogo Tekken 3, lançado em 1997. No
 
 ## Contribuições para o trabalho
 
-O aluno Henrique da Silva ficou responsável por implementar os aspectos da gameplay como o sistema de inputs, colisão, lógica de golpes e movimentação, câmeras iluminação das espadas e a sombra dos personagens
+O aluno Henrique da Silva ficou responsável por implementar os aspectos da gameplay como o sistema de inputs, colisão, lógica de golpes e movimentação, câmeras, iluminação das espadas e a sombra dos personagens.
+O aluno Guilherme Feroleto ficou responsável pela seleção/criação dos modelos 3D, do personagem, da espada e do skybox usado para o cenário; pela escolha do conjunto de animações e texturas; pela aplicação das animações no personagem e a aplicação das texturas, no personagem, na espada e no cenário; pelos elementos de hub da aplicação, como as barras de vida e a tela de fim de jogo, e também pela lógica de reínicio/congelamento quando a vida de algum dos personagens chega em zero.
 
 ## Uso de IA
 Para realizar o trabalho utilizamos IAs como gemini, github Copilot e Claude. A parte onde elas foram usadas mais diretamente estão explicitadas no arquivo PROMPTS.md. Fora esses, a IA serviu como ferramenta para debugs eventuais e aprendizado sobre OpenGl e c++. O uso de Ia foi muito útil para estes casos, acelerando considervelmente o processo, porém ela não conseguiu nos ajudar para corrigir um bug que havia na câmera em que quando os personagens ficavam muito próximos ela invertia de lado. Neste caso foi tentado alternativas de correção, com diversas IAs, mas nehuma conseguiu ajudar, enquanto todo o problema era causado por somente uma linha do código que precisava ser retirada.
@@ -19,13 +20,13 @@ Para realizar o trabalho utilizamos IAs como gemini, github Copilot e Claude. A 
 
 
 ## Manual
--AWSD para movimentação do personagem.
--I para ataque rápido.
--O para o golpe de projétil.
--1 para ligar e desligar a visualização das hitboxes.
--2 na tela de fim de jogo para trocar o modo de câmera.
-    -no modo de camera livre use as setas do teclado para movimentar nos eixos X e Z e use 0 e 9 para se mover no eixo Y.
--3 para ligar e desligar a IA do adversário.
+- Teclas "AWSD" para movimentação do personagem.\n
+- Tecla "I" para ataque rápido.\n
+- Tecla "O" para o golpe de projétil.\n
+- Tecla "1" para ligar e desligar a visualização das hitboxes.\n
+- Tecla "2" na tela de fim de jogo para trocar o modo de câmera.\n
+    - no modo de camera livre use as setas do teclado para movimentar nos eixos X e Z e use "0" e "9" para se mover no eixo Y.\n
+- Tecla "3" para ligar e desligar a IA do adversário.\n
 
 ## Instalação da biblioteca Assimp
 
